@@ -236,9 +236,10 @@ class ProjectileGenerator(BaseGenerator):
             else: # hard: setback, add more options later
                 choice = 1 #random.randint(1,3) # room for more variations
                 if choice == 1:
-                    question = f"A {object_name} is {verb} off a {d_y} m high cliff at {v_r} m/s at a {theta_i} 
-                    degree angle. It lands {d_x} m away from the base of the cliff. How far back from the cliff's 
-                    edge was it {verb}, and at what time after it was launched was it again at the height of the cliff?"
+                    question = f"""A {object_name} is {verb} off a {d_y} m high cliff at {v_r} m/s at a {theta_i} 
+                    degree angle. It lands {d_x} m away from the base of the cliff. 
+                    How far back from the cliff's edge was it {verb}, 
+                    and at what time after it was launched was it again at the height of the cliff?"""
                     answer = {x_back}
                     unit = "Launch-to-cliff Distance (m)"
                     answer2 = t_level
