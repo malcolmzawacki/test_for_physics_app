@@ -85,7 +85,7 @@ def main():
         )
         
         # Second input for hard difficulty or type 2
-        show_second_input = (problem_type == "Type 1" and difficulty == "Easy")
+        show_second_input = difficulty == "Hard" or ((problem_type == "Type 2" or problem_type == "Type 3") and difficulty == "Easy")
         if show_second_input:
             unit2 = st.session_state.unit2
             user_input2 = st.number_input(
