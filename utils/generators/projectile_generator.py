@@ -85,7 +85,7 @@ class ProjectileGenerator(BaseGenerator):
         d_y = 5*t_1*t_2
         
         if difficulty == "Hard":
-            t_x = random.randint(t_1,t_2-1) # time to base of cliff, must be after reaching height first time but before second time
+            t_x = random.randint(t_1,t_2) # time to base of cliff, must be after reaching height first time but before second time
         else: # easy, no setback
             t_x = t_2 #as close as possible to not landing on cliff
         
@@ -112,7 +112,7 @@ class ProjectileGenerator(BaseGenerator):
         t = 0.2*v_y_i + c # total time
         t_level = int(v_y_i/5) #time to return to starting height
         if difficulty == "Hard":
-            t_x = random.randint(0,t_level-1) # time for distance from edge of cliff the object is launched, must be before returning to level
+            t_x = random.randint(0,t_level) # time for distance from edge of cliff the object is launched, must be before returning to level
             x_back = v_x*t_x # distance from the edge the the object is launched
         else: # easy, no setback
             t_x = 0
