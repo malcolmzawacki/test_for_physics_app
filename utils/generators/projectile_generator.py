@@ -226,13 +226,13 @@ class ProjectileGenerator(BaseGenerator):
             if difficulty == "Easy": # no setback from cliff edge
                 choice = 1 #random.randint(1,3) # room for more variations
                 if choice == 1:
-                    question = f"A {object_name} is {verb} off a {d_y} m high cliff at a {theta_i} degree angle 
+                    question = f"""A {object_name} is {verb} off a {d_y} m high cliff at a {theta_i} degree angle 
                     at {v_r} m/s. How far away from the base of the cliff does this {object_name} land, 
                     and how fast is it moving when it hits the ground?"
                     answer = d_x
                     unit = "Horizontal Distance (m)"
                     answer2 = v_f
-                    unit2 = "Final (Impact) Velocity (m/s)"
+                    unit2 = "Final (Impact) Velocity (m/s)"""
             else: # hard: setback, add more options later
                 choice = 1 #random.randint(1,3) # room for more variations
                 if choice == 1:
@@ -250,19 +250,19 @@ class ProjectileGenerator(BaseGenerator):
             if difficulty == "Easy":
                 choice = random.randint(1,2) # room for more variations
                 if choice == 1: # give height velocity and angle, ask for distance and final angle
-                    question = f"A group of people are trying to get a {object_name} to land 
+                    question = f"""A group of people are trying to get a {object_name} to land 
                     on top a {d_y} m high cliff. They {verb} it at {v_r} m/s at a {theta_i} degree angle. It 
                     just barely lands on the edge of the cliff. How far away from the base of the cliff was it 
-                    launched from, and at what angle does it land?"
+                    launched from, and at what angle does it land?"""
                     answer = d_x
                     unit = "Horizontal Distance to cliff (m)"
                     answer2 = theta_f
                     unit2 = "Landing Angle (degrees)"
                 elif choice == 2: # give distance velocity and angle, ask for height and final velocity
-                    question = f"A group of people are trying to get a {object_name} to land 
+                    question = f"""A group of people are trying to get a {object_name} to land 
                     on top a cliff. They {verb} it at {v_r} m/s at a {theta_i} degree angle, {d_x} m from the 
                     base of the cliff. It just barely lands on the cliff's edge. 
-                    How high up is the cliff, and what is its velocity when it lands?"
+                    How high up is the cliff, and what is its velocity when it lands?"""
                     answer = d_y
                     unit = "Cliff Height (m)"
                     answer2 = v_f
@@ -270,10 +270,10 @@ class ProjectileGenerator(BaseGenerator):
             else: # hard, setback, doesn't land on edge
                 choice = 1 #random.randint(1,2) # more room for variations
                 if choice == 1: # gives t_1 height and v_r to find angle, dist from edge to find dist from base
-                    question = f"A {object_name} is {verb} to get it on top of a {d_y} m cliff. 
+                    question = f"""A {object_name} is {verb} to get it on top of a {d_y} m cliff. 
                     It was initially {verb} at {v_r} m/s, and first reaches the cliff height after {t_1} seconds.
                     It safely lands up top, {x_back} m from the edge of the cliff.
-                    What angle was it launched at, and from how far from the base of the cliff?"
+                    What angle was it launched at, and from how far from the base of the cliff?"""
                     answer = theta_i
                     unit = "Launch Angle (degrees)"
                     answer2 = d_x
