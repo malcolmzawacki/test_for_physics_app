@@ -228,7 +228,7 @@ class ProjectileGenerator(BaseGenerator):
                 if choice == 1:
                     question = f"""A {object_name} is {verb} off a {d_y} m high cliff at a {theta_i} degree angle 
                     at {v_r} m/s. How far away from the base of the cliff does this {object_name} land, 
-                    and how fast is it moving when it hits the ground?"
+                    and how fast is it moving when it hits the ground?"""
                     answer = d_x
                     unit = "Horizontal Distance (m)"
                     answer2 = v_f
