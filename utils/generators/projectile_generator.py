@@ -102,7 +102,7 @@ class ProjectileGenerator(BaseGenerator):
         row_choice = random.randint(0, len(m_n_list)-1)
         m = m_n_list[row_choice][0]
         n = m_n_list[row_choice][1]
-        c = random.randint(1,difficulty)
+        c = random.randint(1,self.get_difficulty_range(difficulty))
 
         v_x = m**2 - n**2
         v_y_i = 2*m*n
