@@ -55,7 +55,7 @@ def main():
     with col1:
         problem_type = st.selectbox(
             "Select Problem Type",
-            ["Type 1", "Type 2"],
+            ["Type 1", "Type 2","Type 3"],
             key="problem_type_select"
         )
     with col2:
@@ -85,7 +85,7 @@ def main():
         )
         
         # Second input for hard difficulty or type 2
-        show_second_input = difficulty == "Hard" or (problem_type == "Type 2" and difficulty == "Easy")
+        show_second_input = (problem_type == "Type 1" and difficulty == "Easy")
         if show_second_input:
             unit2 = st.session_state.unit2
             user_input2 = st.number_input(
