@@ -110,7 +110,7 @@ class ProjectileGenerator(BaseGenerator):
         theta_i = round(math.degrees(math.atan(v_y_i / v_x)), 4)
         d_y = c*(v_y_i + 5*c)
         t = 0.2*v_y_i + c # total time
-        t_level = v_y_i/5 #time to return to starting height
+        t_level = int(v_y_i/5) #time to return to starting height
         if difficulty == "Hard":
             t_x = random.randint(0,t_level-1) # time for distance from edge of cliff the object is launched, must be before returning to level
             x_back = v_x*t_x # distance from the edge the the object is launched
@@ -232,7 +232,7 @@ class ProjectileGenerator(BaseGenerator):
                     answer = d_x
                     unit = "Horizontal Distance (m)"
                     answer2 = v_f
-                    unit2 = "Final (Impact) Velocity (m/s)"""
+                    unit2 = "Final (Impact) Velocity (m/s)"
             else: # hard: setback, add more options later
                 choice = 1 #random.randint(1,3) # room for more variations
                 if choice == 1:
@@ -243,7 +243,7 @@ class ProjectileGenerator(BaseGenerator):
                     answer = {x_back}
                     unit = "Launch-to-cliff Distance (m)"
                     answer2 = t_level
-                    unit2 = "time to return to same height (s)"
+                    unit2 = "Time to return to same Height (s)"
 
         else: # low to high
             t_1, t_2, v_x, v_y_i, v_r, theta_i, d_y, t_x, d_x, x_back, v_y_f, v_f, theta_f = self.calculate_type3_low_high_values(difficulty)
@@ -278,6 +278,6 @@ class ProjectileGenerator(BaseGenerator):
                     answer = theta_i
                     unit = "Launch Angle (degrees)"
                     answer2 = d_x
-                    unti2 = "Horizontal distance from launch site to cliff face (m)"
+                    unit2 = "Horizontal distance from launch site to cliff face (m)"
         
         return question, answer, answer2, unit, unit2
