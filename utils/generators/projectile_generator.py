@@ -92,8 +92,8 @@ class ProjectileGenerator(BaseGenerator):
         d_x = v_x*t_x
         x_back = v_x*(t_2 - t_x) # distance from edge of cliff the object lands
         v_y_f = 5*(2*t_1 - t_2)
-        theta_f = round(math.degrees(math.atan(v_y_f / v_x)), 4)
-        v_f = round(((v_x**2 + v_y_f**2)**(0/5)),4)
+        theta_f = abs(round(math.degrees(math.atan(v_y_f / v_x)), 4))
+        v_f = round(((v_x**2 + v_y_f**2)**(0.5)),4)
         return t_1, t_2, v_x, v_y_i, v_r, theta_i, d_y, t_x, d_x, x_back, v_y_f, v_f, theta_f
     
 
@@ -120,8 +120,8 @@ class ProjectileGenerator(BaseGenerator):
 
         d_x = v_x*(t-t_x) # distance from base of cliff upon landing
         v_y_f = v_y_i - 10*t
-        theta_f = round(math.degrees(math.atan(v_y_f / v_x)), 4)
-        v_f = round(((v_x**2 + v_y_f**2)**(0/5)),4)
+        theta_f = abs(round(math.degrees(math.atan(v_y_f / v_x)), 4))
+        v_f = round(((v_x**2 + v_y_f**2)**(0.5)),5)
         return t, t_level, v_x, v_y_i, v_r, theta_i, d_y, t_x, d_x, x_back, v_y_f, v_f, theta_f
 
 
