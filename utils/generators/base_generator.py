@@ -32,7 +32,10 @@ class BaseGenerator:
         for var in vars_to_init:
             key = f"{self.state_prefix}{var}"
             if key not in st.session_state:
-                st.session_state[key] = None
+                if not key == 'question_id':
+                    st.session_state[key] = None
+                else:
+                    st.session_state[key] = 0
     
     def clear_answers(self):
         """Clear user answers when generating new questions"""

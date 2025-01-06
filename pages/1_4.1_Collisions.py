@@ -6,13 +6,38 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.generators.collision_generator import CollisionGenerator
 
+def initialize_session_state():
+    prefix = "collision_"  # hardcode this instead of getting from generator
+    base_vars = [
+        'current_question',
+        'correct_answer',
+        'correct_answer2',
+        'unit',
+        'unit2',
+        'user_answer',
+        'user_answer2',
+        'submitted',
+        'question_id',
+        'difficulty',
+        'problem_type'
+    ]
+    
+    # initialize all vars with prefix
+    for var in base_vars:
+        if f"{prefix}{var}" not in st.session_state:
+            st.session_state[f"{prefix}{var}"] = None
+
+    # initialize question_id to 0
+    if f"{prefix}question_id" not in st.session_state:
+        st.session_state[f"{prefix}question_id"] = 0
+
+
 def main():
+    prefix = "collision_"  # use same prefix here
     st.title("Collisions")
     
-    # Create the generator
     generator = CollisionGenerator()
-    generator.initialize_session_state()
-    
+    initialize_session_state()
     # UI Controls
 
     col1, col2 = st.columns(2)
@@ -30,7 +55,6 @@ def main():
         )
 
     # Check if we need a new question
-    prefix = generator.state_prefix
     if (problem_type != st.session_state[f"{prefix}problem_type"] or 
         st.session_state[f"{prefix}current_question"] is None):
         
@@ -42,6 +66,7 @@ def main():
         st.session_state[f"{prefix}unit"] = unit
         st.session_state[f"{prefix}unit2"] = unit2
         st.session_state[f"{prefix}problem_type"] = problem_type
+        st.session_state[f"{prefix}question_id"] = 0
         generator.clear_answers()
 
     # Display current question
@@ -72,8 +97,8 @@ def main():
     
     # New Question button
     if st.button("New Question"):
-        st.session_state[f"{prefix}question_id"] += 1
         question, answer, unit, answer2, unit2 = generator.generate_question(problem_type, difficulty)
+        st.session_state[f"{prefix}question_id"] += 1
         st.session_state[f"{prefix}current_question"] = question
         st.session_state[f"{prefix}correct_answer"] = answer
         st.session_state[f"{prefix}correct_answer2"] = answer2
