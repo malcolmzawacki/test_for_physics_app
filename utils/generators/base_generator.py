@@ -11,7 +11,7 @@ class BaseGenerator:
         elif difficulty == "Hard":
             return 50
         else:
-            return
+            return 20
     
     def initialize_session_state(self):
         """Initialize basic session state variables with proper prefixing"""

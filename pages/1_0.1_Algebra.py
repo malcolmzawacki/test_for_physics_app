@@ -7,22 +7,23 @@ def generate_equation(difficulty):
         'add': ('+', 'Subtract'),
         'sub': ('-', 'Add'),
         'mul': ('×', 'Divide by'),
-        'div': ('÷', 'Multiply by')
+        'div': ('÷', 'Multiply by'),
+        'exp': ('^', 'Take the root'),
+        'root': ('√', 'Square'),
     }
 
-    # Set complexity based on difficulty
     if difficulty == 'easy':
         num_steps = 2
     elif difficulty == 'medium':
         num_steps = 3
-    else:  # hard
+    elif difficulty == 'hard':
         num_steps = 4
+    elif difficulty == 'extra_hard':
+        num_steps = 5
 
-    # Pick variables
     var_target = random.choice(variables)
     var_solve = random.choice([v for v in variables if v != var_target])
 
-    # Generate steps
     steps = []
     solution_steps = []
     prev_op = ''
@@ -31,36 +32,39 @@ def generate_equation(difficulty):
         while op_name == prev_op:
             op_name = random.choice(list(operations.keys()))
         prev_op = op_name
-        value = random.choice([v for v in variables if v != var_target and v != var_solve])
 
-        
+        value = random.randint(2, 5)
+
         symbol, inverse_text = operations[op_name]
         steps.append((op_name, symbol, value))
         solution_steps.append((inverse_text, value))
 
-    # Build equation string
     right_side = var_target
     for op_name, symbol, value in steps:
-        if op_name== 'mul':
-            right_side = f"({right_side} \\cdot {value})"
+        if op_name == 'mul':
+            right_side = f"({right_side} · {value})"
         elif op_name == 'div':
             right_side = f"\\frac{{{right_side}}}{{{value}}}"
         elif op_name == 'add':
             right_side = f"({right_side} + {value})"
         elif op_name == 'sub':
             right_side = f"({right_side} - {value})"
+        elif op_name == 'exp':
+            right_side = f"({right_side} ^ {value})"
+        elif op_name == 'root':
+            right_side = f"\\sqrt[{value}]{{{right_side}}}"
+
+
     equation = f"{var_solve} = {right_side}"
 
-    # Generate wrong answers
     wrong_answers = []
     for _ in range(4):
-        wrong = solution_steps.copy()
-        # Modify one step
-        change_idx = random.randrange(len(wrong))
-        ops = ['Add', 'Subtract', 'Multiply by', 'Divide by']
-        wrong[change_idx] = (random.choice([op for op in ops if op != wrong[change_idx][0]]), wrong[change_idx][1])
-           
-        wrong_answers.append(wrong)
+      wrong = solution_steps.copy()
+      change_idx = random.randrange(len(wrong))
+      ops = list(operations.values())
+      new_inverse = random.choice([op[1] for op in ops if op[1] != wrong[change_idx][0]])
+      wrong[change_idx] = (new_inverse, wrong[change_idx][1])
+      wrong_answers.append(wrong)
 
     all_answers = wrong_answers + [solution_steps]
     random.shuffle(all_answers)
@@ -83,12 +87,12 @@ def initialize_session_state():
 
 def main():
     st.title("Algebraic Manipulation Practice")
-    
+
     initialize_session_state()
-    
+
     difficulty = st.selectbox(
         "Select difficulty:",
-        ['easy', 'medium', 'hard']
+        ['easy', 'medium', 'hard', 'extra_hard']
     )
 
     if st.button("New Question") or st.session_state.problem is None:
@@ -98,16 +102,14 @@ def main():
 
     if st.session_state.problem:
         st.latex(st.session_state.problem['equation'])
-        
-        # Format choices
+
         choices = []
         for i, steps in enumerate(st.session_state.problem['choices']):
             steps_text = " → ".join([f"{step[0]} {step[1]}" for step in reversed(steps)])
             choices.append(f"Option {i+1}: {steps_text}")
 
-
         answer = st.radio(
-            f"Select the correct sequence of steps to solve for {st.session_state.problem['target_var']}:",
+            f"Select the correct sequence of steps to solve for {st.session_state.problem['target_var']}",
             options=choices,
             key=f"choice_{st.session_state.question_id}"
         )
@@ -115,28 +117,33 @@ def main():
         if st.button("Submit"):
             selected_index = int(answer[7]) - 1
             if st.session_state.problem['choices'][selected_index] == st.session_state.problem['solution_steps']:
-                # Show rearranged equation
                 var_target = st.session_state.problem['target_var']
                 var_solve = st.session_state.problem['solve_var']
-                rearranged = var_target + " = "
+                rearranged = f"{var_target} = "
                 right_side = var_solve
                 for step in reversed(st.session_state.problem['solution_steps']):
                     op = step[0].lower()
                     val = step[1]
                     if op.startswith('multiply'):
-                        right_side = f"({right_side} \\cdot {val})"
+                        right_side = f"({right_side} · {val})"
                     elif op.startswith('divide'):
                         right_side = f"\\frac{{{right_side}}}{{{val}}}"
                     elif op.startswith('add'):
                         right_side = f"({right_side} + {val})"
                     elif op.startswith('subtract'):
                         right_side = f"({right_side} - {val})"
+                    elif op.startswith('take the root'):
+                        right_side = f"\\sqrt[{val}]{{{right_side}}}"
+                    elif op.startswith('square'):
+                        right_side = f"({right_side} ^ {val})"
+
                 rearranged += right_side
+
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     st.latex(rearranged)
                 with col2:
-                     st.success("Correct!")
+                    st.success("Correct!")
             else:
                 st.error("Try again!")
 

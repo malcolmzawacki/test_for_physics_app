@@ -5,7 +5,7 @@ objects = ["cactus","turtle","bowl of soup","block of ice","barrel of monkeys",
            "broken treadmill","villainous character","stunt-seeking daredevil","Minecraft villager",
            "mischievious rapscalion","clown","giant spider","miniature elephant","kitschy porcelain figurine","priceless artifact",
            "crown jewel","tuba","snare drum","block of concrete","kindergartener's action figure","bonsai tree", 
-           "The Infamous Epi Demick","box of tnt"
+           "The Infamous Epi Demick","box of tnt, Tron"
            ]
 
 proj_verbs = ["catapulted","cannon-fired","launched","chucked","thrown","propelled","kaboomed into the air",

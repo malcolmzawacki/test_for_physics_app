@@ -1,21 +1,17 @@
-# pages/collisions.py
 import streamlit as st
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.generators.collision_generator import CollisionGenerator
+from utils.generators.linear_motion_generator import LinearMotionGenerator
 
 def initialize_session_state():
-    prefix = "collision_"  # hardcode this instead of getting from generator
+    prefix = "linear_motion"
     base_vars = [
         'current_question',
         'correct_answer',
-        'correct_answer2',
         'unit',
-        'unit2',
         'user_answer',
-        'user_answer2',
         'submitted',
         'question_id',
         'difficulty',
@@ -32,39 +28,76 @@ def initialize_session_state():
         st.session_state[f"{prefix}question_id"] = 0
 
 
-def main():
-    prefix = "collision_"  # use same prefix here
-    st.title("Collisions")
-    
-    generator = CollisionGenerator()
-    initialize_session_state()
-    # UI Controls
+def generate_question(generator, problem_type, difficulty):
+    prefix = "linear_motion"
+    if problem_type == "No Time":
+        question, answer, unit = generator.no_time_question(difficulty)
+    elif problem_type == "No Distance":
+        question, answer, unit = generator.no_dist_question(difficulty)
+    elif problem_type == "No Acceleration":
+        question, answer, unit = generator.no_acc_question(difficulty)
+    elif problem_type == "No Final Velocity":
+        question, answer, unit = generator.no_vf_question(difficulty)
+    else:  # Mixed
+        question, answer, unit = generator.mixed_question(difficulty)
+    return question, answer, unit
 
+    st.session_state.user_answer = None
+    st.session_state.submitted = False
+    #st.session_state[f"{prefix}question_id"] += 1
+
+def main():
+    st.title("Linear Motion Problems")
+    prefix = "linear_motion"
+    initialize_session_state()
+
+    generator = LinearMotionGenerator()
+
+    # UI Controls
     col1, col2 = st.columns(2)
     with col1:
-        problem_type = st.selectbox(
-            "Select Problem Type",
-            ["Elastic Collision", "Inelastic Collision"],
-            key="problem_type_select"
-        )
+        problem_types = {
+        "Mixed": "Mixed",
+        "No Time": r"v_f^2 = v_i^2 + 2a \cdot x",
+        "No Distance": r"v_f = v_i + a \cdot t",
+        "No Acceleration": r"x = \frac{(v_f + v_i)}{2} \cdot t",
+        "No Final Velocity": r"x = v_i \cdot t + \frac{1}{2} a \cdot t^2",
+        }
+
+
+        selected_problem_type = st.selectbox(
+            "Problem Type",
+            options=list(problem_types.keys()),
+            key="problem_type_select")
+            
+        if selected_problem_type != "Mixed":
+            equation = problem_types[selected_problem_type]  # Exclude Mixed from standalone LaTeX rendering
+            st.latex(equation)
+        else:
+            st.latex(r"v_f^2 = v_i^2 + 2a \cdot x")
+            st.latex(r"x = v_i \cdot t + \frac{1}{2} a \cdot t^2")
+        problem_type = selected_problem_type
+
     with col2:
         difficulty = st.selectbox(
-            "Select Difficulty",
-            ["Easy","Medium"],
+            "Difficulty",
+            ["Easy", "Medium", "Hard"],
             key="difficulty_select"
         )
+           
+        if selected_problem_type == "Mixed":
+            st.latex(r"v_f = v_i + a \cdot t")
+            st.latex(r"x = \frac{(v_f + v_i)}{2} \cdot t")
 
     # Check if we need a new question
     if (problem_type != st.session_state[f"{prefix}problem_type"] or 
         st.session_state[f"{prefix}current_question"] is None):
         
         # Generate new question and store in session state
-        question, answer, unit, answer2, unit2 = generator.generate_question(problem_type, difficulty)
+        question, answer, unit = generate_question(generator,problem_type, difficulty)
         st.session_state[f"{prefix}current_question"] = question
         st.session_state[f"{prefix}correct_answer"] = answer
-        st.session_state[f"{prefix}correct_answer2"] = answer2
         st.session_state[f"{prefix}unit"] = unit
-        st.session_state[f"{prefix}unit2"] = unit2
         st.session_state[f"{prefix}problem_type"] = problem_type
         st.session_state[f"{prefix}question_id"] = 0
         generator.clear_answers()
@@ -97,13 +130,11 @@ def main():
     
     # New Question button
     if st.button("New Question"):
-        question, answer, unit, answer2, unit2 = generator.generate_question(problem_type, difficulty)
+        question, answer, unit = generate_question(generator, problem_type, difficulty)
         st.session_state[f"{prefix}question_id"] += 1
         st.session_state[f"{prefix}current_question"] = question
         st.session_state[f"{prefix}correct_answer"] = answer
-        st.session_state[f"{prefix}correct_answer2"] = answer2
         st.session_state[f"{prefix}unit"] = unit
-        st.session_state[f"{prefix}unit2"] = unit2
         generator.clear_answers()
         st.rerun()
 
