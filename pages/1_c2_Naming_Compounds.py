@@ -163,11 +163,13 @@ def generate_covalent_formula():
         term1, sub1, term2, sub2 = e1, s1, e2, s2
     else:
         term1, sub1, term2, sub2 =  e2, s2, e1, s1
-    sub1string = '_'+str(sub1) if sub1>1 else ''
-    sub2string = '_'+str(sub2) if sub2>1 else ''
 
     formula = construct_formula(term1, sub1, term2, sub2)
-    name = f"{prefixes[sub1].capitalize()}{element_dict[term1]['name'].lower()} {prefixes[sub2].capitalize()}{element_dict[term2]['anion'].lower()}"
+    if sub1 == 1:
+        term1string = element_dict[term1]['name'].capitalize()
+    else:
+        term1string = prefixes[sub1].capitalize() + element_dict[term1]['name'].lower()
+    name = f"{term1string} {prefixes[sub2].capitalize()}{element_dict[term2]['anion'].lower()}"
     return formula, name
 
 
