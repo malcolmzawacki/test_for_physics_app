@@ -220,8 +220,12 @@ def main():
     col1, col2, col3, col4 = st.columns(4)
     with col2:
         st.header("Formula: ")
+        st.write("")
+        st.write("Ans for testing ->")
     with col3:
         st.latex(f"\\LARGE{{{st.session_state.formula}}}")
+        st.write("")
+        st.write(st.session_state.correct_name)
 
     # Use key parameter to connect the text_input to session state
     st.text_input("Enter the name of the compound", key="user_input", 
