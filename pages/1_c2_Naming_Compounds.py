@@ -106,27 +106,28 @@ prefixes = {
     6: 'hexa', 7: 'hepta', 8: 'octa', 9: 'nona', 10: 'deca'
 }
 
+oxygen_prefixes = {
+    1: 'mon', 2: 'di', 3: 'tri', 4: 'tetr', 5: 'pent',
+    6: 'hex', 7: 'hept', 8: 'oct', 9: 'non', 10: 'dec'
+}
+
 roman_numerals = {v: k for v, k in enumerate(['(I)', '(II)', '(III)', '(IV)', '(V)', '(VI)', '(VII)', '(VIII)', '(IX)', '(X)'],1)}
 
 # Helper Functions
-def generate_ionic_formula():
-    metal = random.choice(list(metals))
-    nonmetal = random.choice(list(nonmetals))
-
-    m_charge = random.choice(element_dict[metal]['charges'])
-    nm_charge = random.choice(element_dict[nonmetal]['charges'])
-    m_sub = abs(nm_charge) // math.gcd(m_charge, abs(nm_charge))
-    nm_sub = m_charge // math.gcd(m_charge, abs(nm_charge))
-
-    formula = construct_formula(metal,m_sub,nonmetal,nm_sub)
-
-    if len(element_dict[metal]['charges']) > 1:
-        roman = roman_numerals[m_charge]
+def make_covalent_name(element_1: str, subscript_1: int, element_2: str, subscript_2: int):
+    if subscript_1 == 1:
+        term1string = element_dict[element_1]['name'].capitalize()
+    elif element_1 == 'O':
+        term1string = oxygen_prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
     else:
-        roman = ''
+        term1string = prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
     
-    name = f"{element_dict[metal]['name']}{roman} {element_dict[nonmetal]['anion']}".capitalize()
-    return formula, name
+    if element_2 == 'O':
+        term2string = oxygen_prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
+    else:
+        term2string = prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
+    name = f"{term1string} {term2string}"
+    return name
 
 def construct_formula(term1, sub1, term2, sub2):
     sub1string = '_'+str(sub1) if sub1>1 else ''
@@ -149,11 +150,31 @@ def construct_formula(term1, sub1, term2, sub2):
         formula = f"{term1string} \\, {term2string}"
     return formula
 
+def generate_ionic_formula():
+    metal = random.choice(list(metals))
+    nonmetal = random.choice(list(nonmetals))
+
+    m_charge = random.choice(element_dict[metal]['charges'])
+    nm_charge = random.choice(element_dict[nonmetal]['charges'])
+    m_sub = abs(nm_charge) // math.gcd(m_charge, abs(nm_charge))
+    nm_sub = m_charge // math.gcd(m_charge, abs(nm_charge))
+
+    formula = construct_formula(metal,m_sub,nonmetal,nm_sub)
+
+    if len(element_dict[metal]['charges']) > 1:
+        roman = roman_numerals[m_charge]
+    else:
+        roman = ''
+    
+    name = f"{element_dict[metal]['name']}{roman} {element_dict[nonmetal]['anion']}".capitalize()
+    return formula, name
+
+
+
 def generate_covalent_formula():
     e1, e2 = random.sample(list(covalent), 2)
     s1, s2 = random.randint(1, 4), random.randint(1, 4)
-    if s1 == s2: s1, s2 = 1, 1  # Avoid dual mono-
-    if (s1 == 2 and s2 == 4) or (s2 == 2 and s1 == 4): s1, s2 = s1//2, s2//2
+    s1, s2 = s1//math.gcd(s1,s2) , s2//math.gcd(s1,s2)
     group1, group2 = element_dict[e1]['group'], element_dict[e2]['group']
     if group1 < group2:
         term1, sub1, term2, sub2 = e1, s1, e2, s2
@@ -165,12 +186,9 @@ def generate_covalent_formula():
         term1, sub1, term2, sub2 =  e2, s2, e1, s1
 
     formula = construct_formula(term1, sub1, term2, sub2)
-    if sub1 == 1:
-        term1string = element_dict[term1]['name'].capitalize()
-    else:
-        term1string = prefixes[sub1].capitalize() + element_dict[term1]['name'].lower()
-    name = f"{term1string} {prefixes[sub2].capitalize()}{element_dict[term2]['anion'].lower()}"
+    name = make_covalent_name(term1, sub1, term2, sub2)
     return formula, name
+
 
 
 def initialize_session_state():
