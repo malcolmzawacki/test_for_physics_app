@@ -337,13 +337,13 @@ def create_exploration_page():
                                    sorted([e for e in covalent], 
                                           key=lambda x: element_dict[x]['name']))
             st.write(f"{element_dict[element1]['name']}")
-            subscript1 = st.number_input("Subscript", 1, 10, 1, key="sub1")
+            subscript1 = st.number_input("Subscript", 1, 9, 1, key="sub1")
         with col2:
             element2 = st.selectbox("Second Element", 
                                    sorted([e for e in covalent if e != element1], 
                                           key=lambda x: element_dict[x]['name']))
             st.write(f"{element_dict[element2]['name']}")
-            subscript2 = st.number_input("Subscript", 1, 10, 1, key="sub2")
+            subscript2 = st.number_input("Subscript", 1, 9, 1, key="sub2")
             
         # Calculate formula and name
         term1, sub1, term2, sub2 = order_covalent_elements(element1, subscript1, element2, subscript2)
