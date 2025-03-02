@@ -2,7 +2,6 @@ import streamlit as st
 import math
 import random
 
-
 element_dict = {
     #"Period 1"
     'H': {'name': 'Hydrogen', 'period': 1, 'group': 1, 'charges': [1], 'anion': 'hydride'},
@@ -113,21 +112,41 @@ oxygen_prefixes = {
 
 roman_numerals = {1: '(I)', 2: '(II)', 3: '(III)', 4: '(IV)', 5: '(V)', 6: '(VI)', 7: '(VII)', 8: '(VIII)', 9: '(IX)', 10: '(X)'}
 
-# Helper Functions
-def make_covalent_name(element_1: str, subscript_1: int, element_2: str, subscript_2: int):
-    if subscript_1 == 1:
-        term1string = element_dict[element_1]['name'].capitalize()
-    elif element_1 == 'O':
-        term1string = oxygen_prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
+polyatomic_ions = { 
+    'ammonium': {'charges': [1], 'formula': r"\text{N} \, \text{H}_4"},
+    'acetate': {'charges':[-1], 'formula': r"\text{C}_2 \, \text{H}_3 \, \text{O}_2"},
+    'bicarbonate': {'charges': [-1], 'formula': r"\text{H} \, \text{C} \, \text{O}_3"},
+    'bisulfate': {'charges': [-1], 'formula': r"\text{H} \, \text{S} \, \text{O}_4"},
+    'chlorate': {'charges': [-1], 'formula': r"\text{Cl} \, \text{O}_2"},
+    'citrate': {'charges': [-1], 'formula': r"\text{H}_2 \, \text{C}_6 \, \text{H}_5 \, \text{O}_7"},
+    'cyanide': {'charges': [-1], 'formula': r"\text{C} \, \text{N}"},
+    'hydroxide': {'charges': [-1], 'formula': r"\text{O} \, \text{H}"},
+    'nitrate': {'charges': [-1], 'formula': r"\text{N} \, \text{O}_3"},
+    'nitrite': {'charges': [-1], 'formula': r"\text{N} \, \text{O}_2"},
+    'perchlorate': {'charges': [-1], 'formula': r"\text{Cl} \, \text{O}_4"},
+    'permanganate': {'charges': [-1], 'formula': r"\text{Mn} \, \text{O}_4"},
+    'thiocyanate': {'charges': [-1], 'formula': r"\text{S} \, \text{C} \, \text{N}"},
+    'carbonate': {'charges': [-2], 'formula': r"\text{C} \, \text{O}_3"},
+    'chromate': {'charges': [-2], 'formula': r"\text{Cr} \, \text{O}_4"},
+    'dichromate': {'charges': [-2], 'formula': r"\text{Cr}_2 \, \text{O}_7"},
+    'sulfate': {'charges': [-2], 'formula': r"\text{S} \, \text{O}_4"},
+    'sulfite': {'charges': [-2], 'formula': r"\text{S} \, \text{O}_3"},
+    'borate': {'charges': [-3], 'formula': r"\text{B} \, \text{O}_3"},
+    'phosphate': {'charges': [-3], 'formula': r"\text{P} \, \text{O}_4"},
+}
+
+
+def order_covalent_elements(e1, s1, e2, s2):
+    """Helper function to order covalent elements correctly"""
+    group1, group2 = element_dict[e1]['group'], element_dict[e2]['group']
+    if group1 < group2:
+        return e1, s1, e2, s2
+    elif group1 > group2:
+        return e2, s2, e1, s1
+    elif element_dict[e1]['period'] > element_dict[e2]['period']:
+        return e1, s1, e2, s2
     else:
-        term1string = prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
-    
-    if element_2 == 'O':
-        term2string = oxygen_prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
-    else:
-        term2string = prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
-    name = f"{term1string} {term2string}"
-    return name
+        return e2, s2, e1, s1
 
 def construct_formula(term1, sub1, term2, sub2):
     sub1string = '_'+str(sub1) if sub1>1 else ''
@@ -149,6 +168,22 @@ def construct_formula(term1, sub1, term2, sub2):
     else:
         formula = f"\\text{{{term1string}}} \\, \\text{{{term2string}}}"
     return formula
+
+def make_covalent_name(element_1: str, subscript_1: int, element_2: str, subscript_2: int):
+    if subscript_1 == 1:
+        term1string = element_dict[element_1]['name'].capitalize()
+    elif element_1 == 'O':
+        term1string = oxygen_prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
+    else:
+        term1string = prefixes[subscript_1].capitalize() + element_dict[element_1]['name'].lower()
+    
+    if element_2 == 'O':
+        term2string = oxygen_prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
+    else:
+        term2string = prefixes[subscript_2].capitalize() + element_dict[element_2]['anion'].lower()
+    name = f"{term1string} {term2string}"
+    return name
+
 
 def generate_ionic_formula():
     metal = random.choice(list(metals))
@@ -186,29 +221,6 @@ def generate_covalent_formula():
     formula = construct_formula(term1, sub1, term2, sub2)
     name = make_covalent_name(term1, sub1, term2, sub2)
     return formula, name
-
-polyatomic_ions = { 
-    'ammonium': {'charges': [1], 'formula': r"\text{N} \, \text{H}_4"},
-    'acetate': {'charges':[-1], 'formula': r"\text{C}_2 \, \text{H}_3 \, \text{O}_2"},
-    'bicarbonate': {'charges': [-1], 'formula': r"\text{H} \, \text{C} \, \text{O}_3"},
-    'bisulfate': {'charges': [-1], 'formula': r"\text{H} \, \text{S} \, \text{O}_4"},
-    'chlorate': {'charges': [-1], 'formula': r"\text{Cl} \, \text{O}_2"},
-    'citrate': {'charges': [-1], 'formula': r"\text{H}_2 \, \text{C}_6 \, \text{H}_5 \, \text{O}_7"},
-    'cyanide': {'charges': [-1], 'formula': r"\text{C} \, \text{N}"},
-    'hydroxide': {'charges': [-1], 'formula': r"\text{O} \, \text{H}"},
-    'nitrate': {'charges': [-1], 'formula': r"\text{N} \, \text{O}_3"},
-    'nitrite': {'charges': [-1], 'formula': r"\text{N} \, \text{O}_2"},
-    'perchlorate': {'charges': [-1], 'formula': r"\text{Cl} \, \text{O}_4"},
-    'permanganate': {'charges': [-1], 'formula': r"\text{Mn} \, \text{O}_4"},
-    'thiocyanate': {'charges': [-1], 'formula': r"\text{S} \, \text{C} \, \text{N}"},
-    'carbonate': {'charges': [-2], 'formula': r"\text{C} \, \text{O}_3"},
-    'chromate': {'charges': [-2], 'formula': r"\text{Cr} \, \text{O}_4"},
-    'dichromate': {'charges': [-2], 'formula': r"\text{Cr}_2 \, \text{O}_7"},
-    'sulfate': {'charges': [-2], 'formula': r"\text{S} \, \text{O}_4"},
-    'sulfite': {'charges': [-2], 'formula': r"\text{S} \, \text{O}_3"},
-    'borate': {'charges': [-3], 'formula': r"\text{B} \, \text{O}_3"},
-    'phosphate': {'charges': [-3], 'formula': r"\text{P} \, \text{O}_4"},
-}
 
 def generate_polyatomic_formula():
     poly_ion = random.choice(list(polyatomic_ions.keys()))
@@ -248,6 +260,7 @@ def generate_polyatomic_formula():
             name = f"{element_dict[paired_ion]['name']} {poly_ion}"
     
     return formula, name.capitalize()
+
 
 def initialize_session_state():
     if 'formula' not in st.session_state:
@@ -305,35 +318,209 @@ def new_question():
     else:  # choice == 3
         st.session_state.formula, st.session_state.correct_name = generate_polyatomic_formula()
 
-# Streamlit App
-def main():
+
+def create_exploration_page():
+    st.title("Chemical Formula Explorer")
+    st.write("Select elements and ions to build and visualize chemical formulas")
+    
+    # Select formula type
+    formula_type = st.selectbox(
+        "Select Formula Type",
+        ["Covalent Compound", "Ionic Compound (Monatomic)", "Ionic Compound (with Polyatomic Ion)"]
+    )
+    
+    if formula_type == "Covalent Compound":
+        # Select two covalent elements
+        col1, col2 = st.columns(2)
+        with col1:
+            element1 = st.selectbox("First Element", 
+                                   sorted([e for e in covalent], 
+                                          key=lambda x: element_dict[x]['name']))
+            st.write(f"{element_dict[element1]['name']}")
+            subscript1 = st.number_input("Subscript", 1, 10, 1, key="sub1")
+        with col2:
+            element2 = st.selectbox("Second Element", 
+                                   sorted([e for e in covalent if e != element1], 
+                                          key=lambda x: element_dict[x]['name']))
+            st.write(f"{element_dict[element2]['name']}")
+            subscript2 = st.number_input("Subscript", 1, 10, 1, key="sub2")
+            
+        # Calculate formula and name
+        term1, sub1, term2, sub2 = order_covalent_elements(element1, subscript1, element2, subscript2)
+        formula = construct_formula(term1, sub1, term2, sub2)
+        name = make_covalent_name(term1, sub1, term2, sub2)
+        
+    elif formula_type == "Ionic Compound (Monatomic)":
+        # Select metal and nonmetal
+        col1, col2 = st.columns(2)
+        with col1:
+            metal = st.selectbox("Metal", 
+                               sorted([e for e in metals], 
+                                      key=lambda x: element_dict[x]['name']))
+            st.write(f"{element_dict[metal]['name']}")
+            
+            if len(element_dict[metal]['charges']) > 1:
+                metal_charge = st.selectbox(
+                    f"Charge", 
+                    sorted(element_dict[metal]['charges'])
+                )
+            else:
+                metal_charge = element_dict[metal]['charges'][0]
+                st.write(f"Charge: +{metal_charge}")
+        
+        with col2:
+            nonmetal = st.selectbox("Nonmetal", 
+                                   sorted([e for e in nonmetals if element_dict[e]['anion'] is not None], 
+                                          key=lambda x: element_dict[x]['name']))
+            st.write(f"{element_dict[nonmetal]['name']}")
+            nonmetal_charge = element_dict[nonmetal]['charges'][0]
+            st.write(f"Charge: {nonmetal_charge}")
+        
+        # Calculate formula
+        m_sub = abs(nonmetal_charge) // math.gcd(metal_charge, abs(nonmetal_charge))
+        nm_sub = metal_charge // math.gcd(metal_charge, abs(nonmetal_charge))
+        formula = construct_formula(metal, m_sub, nonmetal, nm_sub)
+        
+        # Calculate name
+        if len(element_dict[metal]['charges']) > 1:
+            roman = roman_numerals[metal_charge]
+            name = f"{element_dict[metal]['name']}{roman} {element_dict[nonmetal]['anion']}".capitalize()
+        else:
+            name = f"{element_dict[metal]['name']} {element_dict[nonmetal]['anion']}".capitalize()
+    
+    else:  # Ionic Compound with Polyatomic Ion
+        # First determine if we're using ammonium (cation) or other polyatomic ions (anion)
+        use_ammonium = st.checkbox("Use Ammonium (NH₄⁺) as the Cation", False)
+        
+        if use_ammonium:
+            # Ammonium + nonmetal
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Cation: Ammonium**")
+                st.write("Formula: NH₄⁺")
+                st.write("Charge: +1")
+                poly_ion = "ammonium"
+                poly_charge = polyatomic_ions[poly_ion]['charges'][0]
+            with col2:
+                nonmetal = st.selectbox("Anion (Nonmetal)", 
+                                       sorted([e for e in nonmetals if element_dict[e]['anion'] is not None], 
+                                              key=lambda x: element_dict[x]['name']))
+                st.write(f"{element_dict[nonmetal]['name']}")
+                nonmetal_charge = element_dict[nonmetal]['charges'][0]
+                st.write(f"Charge: {nonmetal_charge}")
+            
+            # Calculate formula
+            poly_sub = abs(nonmetal_charge) // math.gcd(poly_charge, abs(nonmetal_charge))
+            nm_sub = poly_charge // math.gcd(poly_charge, abs(nonmetal_charge))
+            
+            poly_formula = polyatomic_ions[poly_ion]['formula']
+            if poly_sub > 1:
+                poly_string = r"\left(" + poly_formula + r"\right)_" + str(poly_sub)
+            else:
+                poly_string = poly_formula
+            
+            if nm_sub > 1:
+                nm_string = f"\\text{{{nonmetal}}}_{{{nm_sub}}}"
+            else:
+                nm_string = f"\\text{{{nonmetal}}}"
+            
+            formula = f"{poly_string} \\, {nm_string}"
+            name = f"Ammonium {element_dict[nonmetal]['anion']}".capitalize()
+            
+        else:
+            # Metal + polyatomic anion
+            col1, col2 = st.columns(2)
+            with col1:
+                metal = st.selectbox("Cation (Metal)", 
+                                   sorted([e for e in metals], 
+                                          key=lambda x: element_dict[x]['name']))
+                st.write(f"{element_dict[metal]['name']}")
+                
+                if len(element_dict[metal]['charges']) > 1:
+                    metal_charge = st.selectbox(
+                        f"Charge", 
+                        sorted(element_dict[metal]['charges'])
+                    )
+                else:
+                    metal_charge = element_dict[metal]['charges'][0]
+                    st.write(f"Charge: +{metal_charge}")
+                    
+            with col2:
+                # Filter out ammonium for polyatomic anions
+                poly_options = {k: v for k, v in polyatomic_ions.items() if k != "ammonium"}
+                poly_ion = st.selectbox("Anion (Polyatomic)", sorted(list(poly_options.keys())))
+                poly_charge = polyatomic_ions[poly_ion]['charges'][0]
+                st.write(f"Charge: {poly_charge}")
+            
+            # Calculate formula
+            metal_sub = abs(poly_charge) // math.gcd(metal_charge, abs(poly_charge))
+            poly_sub = metal_charge // math.gcd(metal_charge, abs(poly_charge))
+            
+            if metal_sub > 1:
+                metal_string = f"\\text{{{metal}}}_{{{metal_sub}}}"
+            else:
+                metal_string = f"\\text{{{metal}}}"
+            
+            poly_formula = polyatomic_ions[poly_ion]['formula']
+            if poly_sub > 1:
+                poly_string = r"\left(" + poly_formula + r"\right)_" + str(poly_sub)
+            else:
+                poly_string = poly_formula
+            
+            formula = f"{metal_string} \\, {poly_string}"
+            
+            # Calculate name
+            if len(element_dict[metal]['charges']) > 1:
+                roman = roman_numerals[metal_charge]
+                name = f"{element_dict[metal]['name']}{roman} {poly_ion}".capitalize()
+            else:
+                name = f"{element_dict[metal]['name']} {poly_ion}".capitalize()
+    
+    # Display the results
+    st.markdown("---")
+    st.subheader("Result:")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Formula:**")
+        st.latex(f"\\LARGE{{{formula}}}")
+    
+    with col2:
+        st.markdown("**Name:**")
+        st.markdown(f"### {name}")
+    
+    st.markdown("---")
+    st.write("Note: This tool follows standard chemical naming conventions. In some cases, alternative names may be used in different contexts.")
+
+def practice_quiz_page():
     st.title("Compound Naming Practice")
-
+    
     initialize_session_state()
-
-    # The checkbox is connected to the session state
-    # When changed, it triggers on_checkbox_change
-    st.checkbox("Include Polyatomic Ions?", 
-                value=st.session_state.include_polyatomic,
-                key="include_polyatomic", 
-                on_change=on_checkbox_change)
+    
+    # Use st.expander to hide settings in a collapsible section
+    with st.expander("Settings", expanded=False):
+        st.checkbox("Include Polyatomic Ions?", 
+                    value=st.session_state.include_polyatomic,
+                    key="include_polyatomic", 
+                    on_change=on_checkbox_change)
 
     # Generate a new problem only if we don't already have one
     if not st.session_state.formula:
         new_question()
     
-    col1, col2, col3, col4 = st.columns(4)
-    with col2:
-        st.header("Formula: ")
-    with col3:
-        st.latex(f"\\LARGE{{{st.session_state.formula}}}")
-
+    st.markdown("### Name this compound:")
+    st.latex(f"\\LARGE{{{st.session_state.formula}}}")
+    
+    # For testing only - Remove in production
+    if st.session_state.get('show_answer', False):
+        st.info(f"Answer: {st.session_state.correct_name}")
+    
     # Use key parameter to connect the text_input to session state
     st.text_input("Enter the name of the compound", 
                   key="user_input", 
                   disabled=st.session_state.submitted)
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         st.button("Check Answer", 
                   on_click=check_answer, 
@@ -341,6 +528,9 @@ def main():
     with col2:
         st.button("New Question", 
                   on_click=new_question)
+    with col3:
+        # For testing only - Remove in production
+        st.checkbox("Show answers (for testing)", key="show_answer")
     
     # Display feedback if available
     if st.session_state.feedback:
@@ -350,6 +540,16 @@ def main():
             st.error(st.session_state.feedback)
         else:
             st.warning(st.session_state.feedback)
+
+def main():
+    # Add tabs for quiz and explorer modes
+    tab1, tab2 = st.tabs(["Practice Quiz", "Formula Explorer"])
+    
+    with tab1:
+        practice_quiz_page()
+    
+    with tab2:
+        create_exploration_page()
 
 if __name__ == "__main__":
     main()
