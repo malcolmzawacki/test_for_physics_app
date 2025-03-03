@@ -333,12 +333,12 @@ def main():
             if len(st.session_state.options) > 0:
                 if col1.button(st.session_state.options[0], key=f"option_0_{st.session_state.question_id}"):
                     process_step(st.session_state.options[0])
-                    st.experimental_rerun()
+                    st.rerun()
             
             if len(st.session_state.options) > 1:
                 if col2.button(st.session_state.options[1], key=f"option_1_{st.session_state.question_id}"):
                     process_step(st.session_state.options[1])
-                    st.experimental_rerun()
+                    st.rerun()
             
             # Second row
             col3, col4 = button_container.columns(2)
@@ -346,12 +346,12 @@ def main():
             if len(st.session_state.options) > 2:
                 if col3.button(st.session_state.options[2], key=f"option_2_{st.session_state.question_id}"):
                     process_step(st.session_state.options[2])
-                    st.experimental_rerun()
+                    st.rerun()
             
             if len(st.session_state.options) > 3:
                 if col4.button(st.session_state.options[3], key=f"option_3_{st.session_state.question_id}"):
                     process_step(st.session_state.options[3])
-                    st.experimental_rerun()
+                    st.rerun()
         
         # Display feedback
         if st.session_state.feedback:
