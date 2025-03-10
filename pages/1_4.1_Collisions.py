@@ -31,13 +31,27 @@ def initialize_session_state():
     if f"{prefix}question_id" not in st.session_state:
         st.session_state[f"{prefix}question_id"] = 0
 
+    if f"{prefix}total_answered" not in st.session_state:
+        st.session_state[f"{prefix}total_answered"] = 0
+
+    if f"{prefix}total_correct" not in st.session_state:
+        st.session_state[f"{prefix}total_correct"] = 0
+
 
 def main():
     prefix = "collision_"  # use same prefix here
     st.title("Collisions")
+    st.sidebar.markdown("### Your Progress")
     
     generator = CollisionGenerator()
     initialize_session_state()
+    correct = st.session_state[f"{prefix}total_correct"]
+    total = st.session_state[f"{prefix}total_answered"]
+    if total > 0:
+        percentage = (correct / total) * 100
+        st.sidebar.write(f"Correct: {correct} out of {total}, ({percentage:.1f}%)")
+    else:
+        st.sidebar.write("No questions answered yet")
     # UI Controls
 
     col1, col2 = st.columns(2)
@@ -87,9 +101,10 @@ def main():
         if user_input is not None:
             correct_answer = st.session_state[f"{prefix}correct_answer"]
             tolerance = correct_answer * 0.05
-            
+            st.session_state[f"{prefix}total_answered"] +=1
             if abs(user_input - correct_answer) < abs(tolerance):
                 st.success("Correct!")
+                st.session_state[f"{prefix}total_correct"] +=1
             else:
                 st.error(f"Incorrect. The correct answer is {correct_answer:.2f}.")
         else:

@@ -119,37 +119,31 @@ def apply_operation(equation, operation, value, target_var):
     
     # Apply the operation to both sides of the equation
     lhs, rhs = equation.args
-    
-    # Handle different variable isolation scenarios
     target = sp.symbols(target_var)
     
-    # If target is on the right side
+    # Apply the appropriate transformation
     if target in rhs.free_symbols:
-        # Apply operation to transform the equation
-        new_rhs = op_func(rhs, value)
-        new_equation = sp.Eq(lhs, new_rhs)
-        
-        # Check if we can now solve for the target
-        try:
-            solved = sp.solve(new_equation, target)
-            if solved:
-                # If solvable, create an equation with target isolated
-                return sp.Eq(target, solved[0])
-        except:
-            # If not yet solvable, return the transformed equation
-            return new_equation
-    
-    # If target is on the left side or equation needs to be rearranged
-    else:
-        # Try solving directly
-        try:
-            solved = sp.solve(equation, target)
-            if solved:
-                return sp.Eq(target, solved[0])
-        except:
-            # Apply operation as a normal transformation
+        # Target is on the right side, apply operation to both sides
+        if operation in ['Multiply by', 'Divide by']:
+            # Multiplication and division apply to both sides
             new_lhs = op_func(lhs, value)
-            return sp.Eq(new_lhs, rhs)
+            new_rhs = op_func(rhs, value)
+        elif operation in ['Add', 'Subtract']:
+            # Addition and subtraction apply to both sides
+            new_lhs = op_func(lhs, value)
+            new_rhs = op_func(rhs, value)
+        else:
+            # For powers and roots, we need to be more careful
+            # Just transform the right side and check later if it's solved
+            new_lhs = lhs
+            new_rhs = op_func(rhs, value)
+    else:
+        # Target might be on the left or nested in complex expressions
+        new_lhs = lhs
+        new_rhs = op_func(rhs, value)
+    
+    # Return the new equation
+    return sp.Eq(new_lhs, new_rhs)
 
 def get_remaining_valid_operations(problem):
     """Determine what operations are valid at the current state of the equation"""
@@ -158,20 +152,28 @@ def get_remaining_valid_operations(problem):
     target = sp.symbols(target_var)
     
     # Check if target is already isolated
-    lhs, rhs = current_eq.args
-    if lhs == target and target not in rhs.free_symbols:
+    if is_truly_solved(current_eq, target_var):
         return []  # Problem is solved
     
     # Get all remaining steps from original solution
     all_steps = problem['solution_steps']
     valid_ops = []
+    taken_ops = problem['steps_taken']
     
     for step in all_steps:
-        if {'name': step['name'], 'value': step['value']} not in problem['steps_taken']:
+        # Check if this step has already been taken
+        already_taken = False
+        for taken in taken_ops:
+            if taken['name'] == step['name'] and taken['value'] == step['value']:
+                already_taken = True
+                break
+                
+        if not already_taken:
             # Apply this operation to see if it's helpful
             new_eq = apply_operation(current_eq, step['name'], step['value'], target_var)
             
             # Check if this operation makes progress (simplified check)
+            # (The equations might differ in form but be mathematically equivalent)
             if new_eq != current_eq:
                 valid_ops.append({'name': step['name'], 'value': step['value']})
     
@@ -225,6 +227,22 @@ def initialize_session_state():
     if 'question_id' not in st.session_state:
         st.session_state.question_id = 0
 
+def is_truly_solved(equation, target_var):
+    """Check if the target variable is truly isolated (solved for)"""
+    target = sp.symbols(target_var)
+    lhs, rhs = equation.args
+    
+    # The target must be alone on one side
+    if lhs == target:
+        # And must not appear on the other side
+        return target not in rhs.free_symbols
+    
+    # Special case: sometimes sympy puts the target on the right side
+    if rhs == target:
+        return target not in lhs.free_symbols
+    
+    return False
+
 def process_step(option):
     """Process a step selection by the user"""
     # Parse the option
@@ -252,12 +270,21 @@ def process_step(option):
         # Update feedback
         st.session_state.feedback = "¡Correcto! Good step."
         
-        # Check if we've isolated the target variable
-        target = sp.symbols(st.session_state.problem['target_var'])
-        lhs, rhs = new_state.args
-        if lhs == target and target not in rhs.free_symbols:
+        # Check if we've truly isolated the target variable
+        if is_truly_solved(new_state, st.session_state.problem['target_var']):
             st.session_state.feedback = "🎉 Great job! You've solved the equation!"
             st.session_state.solved = True
+        elif len(st.session_state.problem['steps_taken']) == len(st.session_state.problem['solution_steps']):
+            # All steps completed but not solved - try to finalize
+            try:
+                target = sp.symbols(st.session_state.problem['target_var'])
+                final_eq = sp.solve(new_state, target)
+                if final_eq:
+                    st.session_state.problem['current_state'] = sp.Eq(target, final_eq[0])
+                    st.session_state.feedback = "🎉 Great job! You've solved the equation!"
+                    st.session_state.solved = True
+            except:
+                pass
             
         # Generate new options
         valid_ops = get_remaining_valid_operations(st.session_state.problem)
@@ -368,3 +395,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""definitely much better now! remaining issues are aesthetic, pretty much:
+The buttons don't update if the path chosen is different than the one intended by the original encoding;
+    if we have a = b/4  + 5, and choose to multiply by 4, it accepts it, and re-renders nicely as 4a = b + 20,
+    but the next option is still "subtract 5", not "subtract 20" as it should be now
+The more aesthetic issue is that the roots are not represented as decimal powers like (a+1)^0.25, rather than 4th root.
+    For educational purposes, having the root is more reasonable, its what they're more used to seeing.
+    I do like that the buttons handle powers and roots a little better now (take the root 4, raise to power 4)
+    but it would still be better if it had a more natural sound "raise to the 4th power" "take the 4th root"
+And this last one is silly, but I have to press "Try Another Problem" twice to get the equation to refresh.
+    Oddly, the "show originial equation" part refreshes to a new problem on the first click, but the rest of the page doesn't
+Ah, now I'm running into an additional oddness: when I "take the root 4" of something like (a-1)^4, it re-renders as ((a-1)^4)^0.25
+    this is undesireable for obvious reasons lol
+    Since the intended use of this page is just the order of operations and the movement of terms, maybe we can solve several of these
+    problems at once by limiting the powers and roots to just 2. this wouldn't make a difference in terms of what is learned,
+    but it would probably make the implementation a lot more smooth. and it would solve the awkward phrasing,
+    since we can just hard-code 'take the square root' or 'square it'. doesn't solve everything, but a few things
+"""

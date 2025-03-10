@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.generators.projectile_generator import ProjectileGenerator
 
-def initialize_session_state():
+def initialize_projectile_session_state():
     if 'current_question' not in st.session_state:
         st.session_state.current_question = None
     if 'correct_answer' not in st.session_state:
@@ -31,7 +31,7 @@ def initialize_session_state():
     if 'problem_type' not in st.session_state:
         st.session_state.problem_type = None
 
-def generate_new_question(generator, problem_type, difficulty):
+def generate_new_projectile_question(generator, problem_type, difficulty):
     st.session_state.current_question, st.session_state.correct_answer, \
     st.session_state.correct_answer2, st.session_state.unit, st.session_state.unit2 = \
         generator.generate_question(problem_type, difficulty)
@@ -45,7 +45,7 @@ def generate_new_question(generator, problem_type, difficulty):
 def main():
     st.title("Projectile Motion")
     
-    initialize_session_state()
+    initialize_projectile_session_state()
     
     # Create generator instance
     generator = ProjectileGenerator()
@@ -69,7 +69,7 @@ def main():
     if (problem_type != st.session_state.problem_type or 
         difficulty != st.session_state.difficulty or 
         st.session_state.current_question is None):
-        generate_new_question(generator, problem_type, difficulty)
+        generate_new_projectile_question(generator, problem_type, difficulty)
 
     if st.session_state.current_question:
         st.write(st.session_state.current_question)
@@ -128,7 +128,7 @@ def main():
 
         # New Question button
         if st.button("New Question"):
-            generate_new_question(generator, problem_type, difficulty)
+            generate_new_projectile_question(generator, problem_type, difficulty)
             st.rerun()
 
 if __name__ == "__main__":
