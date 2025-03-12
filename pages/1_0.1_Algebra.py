@@ -1,299 +1,394 @@
 import streamlit as st
 import random
 import sympy as sp
-from sympy import symbols, Eq, solve, sqrt, Pow, sympify
+from sympy import symbols, Eq, solve, sqrt, Pow, sympify, expand
 import re
 
-def generate_equation(difficulty):
-    """Generate a random algebra equation with a clear solution path"""
-    variables = ['x', 'y', 'z', 'a', 'b', 'c', 'm', 'n', 'p', 'q']
+def latex_equation(equation):
+    """Convert a sympy equation to a LaTeX string with some custom formatting"""
+    # Convert to standard LaTeX
+    latex_str = sp.latex(equation)
     
-    # Define operations and their inverse operations
-    operations = {
+    # Add custom formatting for better display
+    # Replace decimal powers with roots when possible
+    latex_str = re.sub(r'\^\{0\.5\}', r'^{\\frac{1}{2}}', latex_str)
+    
+    return latex_str
+
+def count_operations(expr):
+    """Count the number of operations in an expression - used for complexity"""
+    if isinstance(expr, sp.Eq):
+        return count_operations(expr.lhs) + count_operations(expr.rhs)
+    
+    if expr.is_Add or expr.is_Mul:
+        return sum(count_operations(arg) for arg in expr.args) + len(expr.args) - 1
+    
+    if expr.is_Pow:
+        return count_operations(expr.base) + count_operations(expr.exp) + 1
+    
+    if isinstance(expr, sp.Pow) and expr.exp == 0.5:  # sqrt
+        return count_operations(expr.base) + 1
+        
+    return 0  # Atomic expression (symbol or number)
+
+def generate_equation(difficulty):
+    """Generate a random algebra equation with a pedagogically sound solution path"""
+    # Define difficulty parameters
+    if difficulty == 'easy':
+        num_steps = 2
+        operations = ['add', 'sub', 'mul', 'div']
+        max_value = 5
+    elif difficulty == 'medium':
+        num_steps = 3
+        operations = ['add', 'sub', 'mul', 'div']
+        max_value = 8
+    elif difficulty == 'hard':
+        num_steps = 3
+        operations = ['add', 'sub', 'mul', 'div', 'sqr']
+        max_value = 10
+    else:  # extra_hard
+        num_steps = 4
+        operations = ['add', 'sub', 'mul', 'div', 'sqr', 'sqrt']
+        max_value = 12
+    
+    # Choose target variable
+    variables = ['x', 'y', 'z', 'a', 'b', 'c', 'm', 'n', 'p', 'q']
+    var_target = random.choice(variables)
+    var_solve = random.choice([v for v in variables if v != var_target])
+    
+    # Start with the target variable
+    target_sym = sp.symbols(var_target)
+    solve_sym = sp.symbols(var_solve)
+    
+    # Begin with the simplest equation: solve_var = target_var
+    current_expr = target_sym
+    
+    # Build the solution path by applying random operations
+    solution_path = []
+    final_operations = []
+    
+    # Operation functions and their inverses
+    op_funcs = {
         'add': (lambda x, v: x + v, 'Subtract', lambda x, v: x - v),
         'sub': (lambda x, v: x - v, 'Add', lambda x, v: x + v),
         'mul': (lambda x, v: x * v, 'Divide by', lambda x, v: x / v),
         'div': (lambda x, v: x / v, 'Multiply by', lambda x, v: x * v),
-        'exp': (lambda x, v: x ** v, 'Take the root', lambda x, v: x ** (1/v)),
-        'root': (lambda x, v: x ** (1/v), 'Raise to power', lambda x, v: x ** v),
+        'sqr': (lambda x, v: x ** 2, 'Take the square root', lambda x, v: sp.sqrt(x)),
+        'sqrt': (lambda x, v: sp.sqrt(x), 'Square it', lambda x, v: x ** 2),
     }
     
-    # Determine number of steps based on difficulty
-    if difficulty == 'easy':
-        num_steps = 2
-    elif difficulty == 'medium':
-        num_steps = 3
-    elif difficulty == 'hard':
-        num_steps = 4
-    else:  # extra_hard
-        num_steps = 5
-    
-    # Choose variables
-    var_target = random.choice(variables)
-    var_solve = random.choice([v for v in variables if v != var_target])
-    
-    # Generate the steps
-    steps = []
-    inverse_pairs = [
-        {'add', 'sub'},
-        {'mul', 'div'},
-        {'exp', 'root'}
-    ]
+    # Avoid consecutive inverse operations
+    inverse_pairs = {
+        'add': 'sub', 'sub': 'add',
+        'mul': 'div', 'div': 'mul',
+        'sqr': 'sqrt', 'sqrt': 'sqr'
+    }
     
     prev_op = None
+    
     for _ in range(num_steps):
-        # Choose an operation that's not the inverse of the previous one
-        op_name = random.choice(list(operations.keys()))
-        is_inverse = False
+        # Choose an operation (avoiding inverse of the previous one)
+        available_ops = [op for op in operations if op != inverse_pairs.get(prev_op, None)]
+        if not available_ops:
+            available_ops = operations.copy()
         
-        if prev_op:
-            for pair in inverse_pairs:
-                if prev_op in pair and op_name in pair and prev_op != op_name:
-                    is_inverse = True
-                    break
-        
-        # Keep choosing until we find a suitable operation
-        while is_inverse or op_name == prev_op:
-            op_name = random.choice(list(operations.keys()))
-            is_inverse = False
-            if prev_op:
-                for pair in inverse_pairs:
-                    if prev_op in pair and op_name in pair and prev_op != op_name:
-                        is_inverse = True
-                        break
-        
+        op_name = random.choice(available_ops)
         prev_op = op_name
-        value = random.randint(2, 5)
         
-        # Store the operation function, inverse name, and inverse function
-        op_func, inverse_name, inverse_func = operations[op_name]
-        steps.append((op_name, op_func, value, inverse_name, inverse_func))
-    
-    # Create the symbolic expressions
-    target_sym = sp.symbols(var_target)
-    solve_sym = sp.symbols(var_solve)
-    
-    # Build the equation from right to left (target = operations(solve))
-    right_expr = target_sym
-    for op_name, op_func, value, _, _ in steps:
-        right_expr = op_func(right_expr, value)
-    
-    # Create the equation
-    equation = sp.Eq(solve_sym, right_expr)
-    
-    # Create the solution steps (inverse operations in reverse order)
-    solution_steps = []
-    for op_name, _, value, inverse_name, inverse_func in reversed(steps):
-        solution_steps.append({
-            'name': inverse_name,
-            'value': value,
-            'func': inverse_func
+        # Choose a value for the operation
+        if op_name in ['sqr', 'sqrt']:
+            value = None
+        else:
+            # For division, avoid values that make fractions too complex
+            if op_name == 'div':
+                value = random.choice([2, 3, 4, 5])
+            else:
+                value = random.randint(2, max_value)
+        
+        # Get the forward operation function
+        op_func, inverse_name, inverse_func = op_funcs[op_name]
+        
+        # Apply the operation to our expression
+        if value is None:
+            current_expr = op_func(current_expr, None)
+        else:
+            current_expr = op_func(current_expr, value)
+        
+        # Store the inverse operation for the solution path
+        solution_path.append({
+            'operation': inverse_name,
+            'value': value
+        })
+        
+        # Store the forward operation for display
+        final_operations.append({
+            'operation': op_name,
+            'value': value
         })
     
+    # Create the final equation
+    final_equation = sp.Eq(solve_sym, current_expr)
+    
+    # Now create a proper solution path in reverse
+    solution_steps = []
+    for step in reversed(solution_path):
+        solution_steps.append(step)
+    
     return {
-        'equation': equation,
+        'equation': final_equation,
         'target_var': var_target,
         'solve_var': var_solve,
         'solution_steps': solution_steps,
+        'operations_applied': final_operations,
         'steps_taken': [],
-        'current_state': equation,
-        'original_equation': equation,
+        'current_state': final_equation,
+        'original_equation': final_equation,
     }
 
-def apply_operation(equation, operation, value, target_var):
-    """Apply an operation to the equation to isolate the target variable"""
-    # Parse the operation name to determine what to do
-    op_map = {
-        'Add': lambda x, v: x + v,
-        'Subtract': lambda x, v: x - v,
-        'Multiply by': lambda x, v: x * v,
-        'Divide by': lambda x, v: x / v,
-        'Take the root': lambda x, v: x ** (1/v),
-        'Raise to power': lambda x, v: x ** v
-    }
-    
-    # Get the function for this operation
-    op_func = op_map.get(operation)
-    if not op_func:
-        return equation
-    
-    # Apply the operation to both sides of the equation
+def analyze_equation_state(equation, target_var):
+    """Analyze the current state of the equation to determine hint suggestions"""
+    target = sp.symbols(target_var)
     lhs, rhs = equation.args
-    target = sp.symbols(target_var)
     
-    # Apply the appropriate transformation
-    if target in rhs.free_symbols:
-        # Target is on the right side, apply operation to both sides
-        if operation in ['Multiply by', 'Divide by']:
-            # Multiplication and division apply to both sides
-            new_lhs = op_func(lhs, value)
-            new_rhs = op_func(rhs, value)
-        elif operation in ['Add', 'Subtract']:
-            # Addition and subtraction apply to both sides
-            new_lhs = op_func(lhs, value)
-            new_rhs = op_func(rhs, value)
-        else:
-            # For powers and roots, we need to be more careful
-            # Just transform the right side and check later if it's solved
-            new_lhs = lhs
-            new_rhs = op_func(rhs, value)
-    else:
-        # Target might be on the left or nested in complex expressions
-        new_lhs = lhs
-        new_rhs = op_func(rhs, value)
+    # Check where the target variable appears
+    target_in_lhs = target in lhs.free_symbols
+    target_in_rhs = target in rhs.free_symbols
     
-    # Return the new equation
-    return sp.Eq(new_lhs, new_rhs)
-
-def get_remaining_valid_operations(problem):
-    """Determine what operations are valid at the current state of the equation"""
-    current_eq = problem['current_state']
-    target_var = problem['target_var']
-    target = sp.symbols(target_var)
+    # Count occurrences
+    target_count_lhs = str(lhs).count(target_var)
+    target_count_rhs = str(rhs).count(target_var)
     
-    # Check if target is already isolated
-    if is_truly_solved(current_eq, target_var):
-        return []  # Problem is solved
+    # Analyze the structure
+    analysis = {
+        'target_alone': False,
+        'target_almost_alone': False,
+        'target_on_both_sides': target_in_lhs and target_in_rhs,
+        'target_on_left': target_in_lhs,
+        'target_on_right': target_in_rhs,
+        'has_addition': '+' in str(equation),
+        'has_subtraction': '-' in str(equation),
+        'has_multiplication': '*' in str(equation),
+        'has_division': '/' in str(equation),
+        'has_power': '**' in str(equation) or 'sqrt' in str(equation),
+    }
     
-    # Get all remaining steps from original solution
-    all_steps = problem['solution_steps']
-    valid_ops = []
-    taken_ops = problem['steps_taken']
+    # Check if target is already isolated (or nearly so)
+    if (lhs == target and not target_in_rhs) or (rhs == target and not target_in_lhs):
+        analysis['target_alone'] = True
     
-    for step in all_steps:
-        # Check if this step has already been taken
-        already_taken = False
-        for taken in taken_ops:
-            if taken['name'] == step['name'] and taken['value'] == step['value']:
-                already_taken = True
-                break
+    # Check if target is almost isolated (like 2*x or x/3)
+    if not analysis['target_alone']:
+        if target_in_lhs and not target_in_rhs:
+            lhs_factors = lhs.as_ordered_factors() if hasattr(lhs, 'as_ordered_factors') else [lhs]
+            if len(lhs_factors) == 2 and any(factor.is_number for factor in lhs_factors):
+                analysis['target_almost_alone'] = True
                 
-        if not already_taken:
-            # Apply this operation to see if it's helpful
-            new_eq = apply_operation(current_eq, step['name'], step['value'], target_var)
-            
-            # Check if this operation makes progress (simplified check)
-            # (The equations might differ in form but be mathematically equivalent)
-            if new_eq != current_eq:
-                valid_ops.append({'name': step['name'], 'value': step['value']})
+        elif target_in_rhs and not target_in_lhs:
+            rhs_factors = rhs.as_ordered_factors() if hasattr(rhs, 'as_ordered_factors') else [rhs]
+            if len(rhs_factors) == 2 and any(factor.is_number for factor in rhs_factors):
+                analysis['target_almost_alone'] = True
     
-    return valid_ops
+    return analysis
 
-def generate_options(valid_operations):
-    """Generate 4 options for the user to choose from, including all valid operations"""
-    # If there are no valid operations, return an empty list
-    if not valid_operations:
-        return []
+def get_hint(equation, target_var):
+    """Generate a hint based on the current equation state"""
+    analysis = analyze_equation_state(equation, target_var)
+    target = sp.symbols(target_var)
+    lhs, rhs = equation.args
     
-    # All possible operations (for generating wrong answers)
-    all_operations = [
-        'Add', 'Subtract', 'Multiply by', 'Divide by', 
-        'Take the root', 'Raise to power'
-    ]
+    # Target on both sides
+    if analysis['target_on_both_sides']:
+        # Suggest getting the target to one side
+        if target_var in str(lhs) and target_var in str(rhs):
+            return f"Try to get all instances of {target_var} on one side. You could subtract {target_var} from both sides."
     
-    # Create options from valid operations
-    options = []
-    for op in valid_operations:
-        options.append(f"{op['name']} {op['value']}")
-    
-    # If we have fewer than 4 valid operations, add some wrong ones
-    while len(options) < 4:
-        wrong_op = random.choice(all_operations)
-        wrong_value = random.randint(2, 5)
-        wrong_option = f"{wrong_op} {wrong_value}"
+    # Target on one side but not isolated
+    if analysis['target_on_left'] and not analysis['target_alone']:
+        # Check if there's addition/subtraction
+        if analysis['has_addition'] or analysis['has_subtraction']:
+            return f"Try to isolate {target_var} by subtracting or adding terms to both sides."
         
-        # Make sure it's not already in our options
-        if wrong_option not in options:
-            options.append(wrong_option)
+        # Check if there's multiplication/division
+        if analysis['has_multiplication']:
+            return f"Try to isolate {target_var} by dividing both sides by the coefficient."
+        
+        if analysis['has_division']:
+            return f"Try to isolate {target_var} by multiplying both sides to remove the division."
+        
+        # Check if there's a power
+        if analysis['has_power'] and '**2' in str(lhs):
+            return f"Try taking the square root of both sides to isolate {target_var}."
     
-    # Shuffle the options
-    random.shuffle(options)
-    return options
+    # Target on right side but not isolated
+    if analysis['target_on_right'] and not analysis['target_alone']:
+        # First suggest moving to left side
+        if not analysis['target_almost_alone']:
+            return f"Consider moving {target_var} to the left side of the equation."
+        
+        # Otherwise, similar checks as above
+        if analysis['has_addition'] or analysis['has_subtraction']:
+            return f"Try to isolate {target_var} by subtracting or adding terms to both sides."
+        
+        if analysis['has_multiplication']:
+            return f"Try to isolate {target_var} by dividing both sides by the coefficient."
+        
+        if analysis['has_division']:
+            return f"Try to isolate {target_var} by multiplying both sides to remove the division."
+        
+        if analysis['has_power'] and '**2' in str(rhs):
+            return f"Try taking the square root of both sides to isolate {target_var}."
+    
+    # Default hint
+    return "Think about which operations would simplify the equation or help isolate the variable."
 
-def latex_equation(equation):
-    """Convert a sympy equation to a LaTeX string"""
-    return sp.latex(equation)
+def apply_operation(equation, operation, value=None):
+    """Apply an algebraic operation to both sides of the equation"""
+    lhs, rhs = equation.args
+    
+    if operation == "add":
+        if value is None:
+            return equation
+        return sp.Eq(lhs + value, rhs + value)
+    
+    elif operation == "subtract":
+        if value is None:
+            return equation
+        return sp.Eq(lhs - value, rhs - value)
+    
+    elif operation == "multiply":
+        if value is None or value == 0:
+            return equation
+        return sp.Eq(lhs * value, rhs * value)
+    
+    elif operation == "divide":
+        if value is None or value == 0:
+            return equation
+        return sp.Eq(lhs / value, rhs / value)
+    
+    elif operation == "square":
+        return sp.Eq(lhs ** 2, rhs ** 2)
+    
+    elif operation == "sqrt":
+        try:
+            return sp.Eq(sp.sqrt(lhs), sp.sqrt(rhs))
+        except:
+            return equation
+    
+    # If operation not recognized, return the original equation
+    return equation
+
+def minimal_simplify(equation):
+    """Only perform basic simplification without solving"""
+    try:
+        # Just do basic expansion, NO SOLVING
+        lhs = sp.expand(equation.lhs)
+        rhs = sp.expand(equation.rhs)
+        expanded = sp.Eq(lhs, rhs)
+        
+        # Only update if it actually simplifies without solving
+        if count_operations(expanded) < count_operations(equation):
+            return expanded
+    except:
+        pass
+    
+    return equation
+
+def is_truly_solved(equation, target_var):
+    """STRICT check if the target variable is truly isolated"""
+    target = sp.symbols(target_var)
+    lhs, rhs = equation.args
+    
+    # The target must be EXACTLY the symbol, not an expression containing it
+    if (lhs == target and target not in rhs.free_symbols):
+        return True
+    
+    if (rhs == target and target not in lhs.free_symbols):
+        return True
+    
+    # Extra check - if it's x = number or number = x
+    if (target in lhs.free_symbols and not target in rhs.free_symbols and 
+        len(lhs.free_symbols) == 1 and len(rhs.free_symbols) == 0):
+        return True
+        
+    if (target in rhs.free_symbols and not target in lhs.free_symbols and 
+        len(rhs.free_symbols) == 1 and len(lhs.free_symbols) == 0):
+        return True
+    
+    return False
+
+def process_step(equation, operation, value, target_var):
+    """Process a single algebraic step"""
+    # Apply the operation
+    new_eq = apply_operation(equation, operation, value)
+    
+    # Check if this makes any change
+    if str(new_eq) == str(equation):
+        return False, equation, "This operation doesn't change the equation."
+    
+    # Do minimal simplification
+    simplified_eq = minimal_simplify(new_eq)
+    
+    # Check if solved
+    solved = is_truly_solved(simplified_eq, target_var)
+    
+    # Generate feedback
+    if solved:
+        feedback = "¡Excelente! You've solved the equation correctly! 🎉"
+    else:
+        # Analyze if this was a good step
+        old_analysis = analyze_equation_state(equation, target_var)
+        new_analysis = analyze_equation_state(simplified_eq, target_var)
+        
+        if new_analysis['target_alone'] and not old_analysis['target_alone']:
+            feedback = "¡Perfecto! That isolated the variable. Great work! 👏"
+        elif old_analysis['target_on_both_sides'] and not new_analysis['target_on_both_sides']:
+            feedback = "¡Bien hecho! You got the variable to one side of the equation."
+        elif count_operations(simplified_eq) < count_operations(equation):
+            feedback = "Good step! You simplified the equation. 👍"
+        else:
+            feedback = "That step changes the equation, but keeps the solution the same."
+    
+    return True, simplified_eq, feedback
 
 def initialize_session_state():
-    """Initialize the session state variables"""
+    """Initialize all session state variables"""
     if 'problem' not in st.session_state:
         st.session_state.problem = None
-    if 'options' not in st.session_state:
-        st.session_state.options = []
     if 'feedback' not in st.session_state:
         st.session_state.feedback = ""
     if 'solved' not in st.session_state:
         st.session_state.solved = False
     if 'question_id' not in st.session_state:
         st.session_state.question_id = 0
+    if 'next_problem_data' not in st.session_state:
+        st.session_state.next_problem_data = None
+    if 'show_solution' not in st.session_state:
+        st.session_state.show_solution = False
+    if 'stars' not in st.session_state:
+        st.session_state.stars = 0
+    if 'hint_used' not in st.session_state:
+        st.session_state.hint_used = False
 
-def is_truly_solved(equation, target_var):
-    """Check if the target variable is truly isolated (solved for)"""
-    target = sp.symbols(target_var)
-    lhs, rhs = equation.args
+def prepare_next_problem(difficulty):
+    """Prepare the next problem in advance"""
+    next_problem = generate_equation(difficulty)
     
-    # The target must be alone on one side
-    if lhs == target:
-        # And must not appear on the other side
-        return target not in rhs.free_symbols
-    
-    # Special case: sometimes sympy puts the target on the right side
-    if rhs == target:
-        return target not in lhs.free_symbols
-    
-    return False
+    st.session_state.next_problem_data = {
+        'problem': next_problem
+    }
 
-def process_step(option):
-    """Process a step selection by the user"""
-    # Parse the option
-    parts = option.split()
-    operation = " ".join(parts[:-1])
-    value = int(parts[-1])
-    
-    # Check if this is a valid step
-    valid_operations = get_remaining_valid_operations(st.session_state.problem)
-    valid_op_strings = [f"{op['name']} {op['value']}" for op in valid_operations]
-    
-    if option in valid_op_strings:
-        # Apply the operation to the current equation
-        new_state = apply_operation(
-            st.session_state.problem['current_state'],
-            operation,
-            value,
-            st.session_state.problem['target_var']
-        )
-        
-        # Record this step
-        st.session_state.problem['steps_taken'].append({'name': operation, 'value': value})
-        st.session_state.problem['current_state'] = new_state
-        
-        # Update feedback
-        st.session_state.feedback = "¡Correcto! Good step."
-        
-        # Check if we've truly isolated the target variable
-        if is_truly_solved(new_state, st.session_state.problem['target_var']):
-            st.session_state.feedback = "🎉 Great job! You've solved the equation!"
-            st.session_state.solved = True
-        elif len(st.session_state.problem['steps_taken']) == len(st.session_state.problem['solution_steps']):
-            # All steps completed but not solved - try to finalize
-            try:
-                target = sp.symbols(st.session_state.problem['target_var'])
-                final_eq = sp.solve(new_state, target)
-                if final_eq:
-                    st.session_state.problem['current_state'] = sp.Eq(target, final_eq[0])
-                    st.session_state.feedback = "🎉 Great job! You've solved the equation!"
-                    st.session_state.solved = True
-            except:
-                pass
-            
-        # Generate new options
-        valid_ops = get_remaining_valid_operations(st.session_state.problem)
-        st.session_state.options = generate_options(valid_ops)
-        
+def switch_to_next_problem():
+    """Switch to the next problem that was prepared in advance"""
+    if st.session_state.next_problem_data:
+        st.session_state.problem = st.session_state.next_problem_data['problem']
+        st.session_state.feedback = ""
+        st.session_state.solved = False
+        st.session_state.show_solution = False
+        st.session_state.question_id += 1
+        st.session_state.next_problem_data = None
+        st.session_state.hint_used = False
         return True
-    else:
-        st.session_state.feedback = "Try again. That's not a valid operation at this step."
-        return False
+    return False
 
 def main():
     st.title("Step-by-Step Algebra Practice")
@@ -308,86 +403,247 @@ def main():
             ['easy', 'medium', 'hard', 'extra_hard']
         )
         
+        # Prepare next problem when sidebar is rendered
+        if st.session_state.next_problem_data is None:
+            prepare_next_problem(difficulty)
+            
         if st.button("New Problem"):
-            st.session_state.problem = generate_equation(difficulty)
-            st.session_state.options = generate_options(
-                get_remaining_valid_operations(st.session_state.problem)
-            )
-            st.session_state.feedback = ""
-            st.session_state.solved = False
-            st.session_state.question_id += 1
+            # Add stars if the previous problem was solved
+            if st.session_state.solved:
+                # Bonus stars for not using hints
+                hint_penalty = 1 if st.session_state.hint_used else 0
+                
+                if difficulty == 'easy':
+                    st.session_state.stars += (2 - hint_penalty)
+                elif difficulty == 'medium':
+                    st.session_state.stars += (3 - hint_penalty)
+                elif difficulty == 'hard':
+                    st.session_state.stars += (4 - hint_penalty)
+                else:  # extra_hard
+                    st.session_state.stars += (6 - hint_penalty)
+            
+            if switch_to_next_problem():
+                st.rerun()
+            else:
+                # Fallback if next problem wasn't prepared
+                st.session_state.problem = generate_equation(difficulty)
+                st.session_state.feedback = ""
+                st.session_state.solved = False
+                st.session_state.show_solution = False
+                st.session_state.question_id += 1
+                st.session_state.hint_used = False
+        
+        # Display stars
+        st.subheader(f"Stars: ⭐ {st.session_state.stars}")
+        
+        # Show solution button (only available after several steps)
+        if st.session_state.problem and len(st.session_state.problem['steps_taken']) >= 2:
+            if st.button("Show Solution Path"):
+                st.session_state.show_solution = True
+                # Penalty for showing solution
+                st.session_state.hint_used = True
     
     # Generate initial problem if needed
     if st.session_state.problem is None:
         st.session_state.problem = generate_equation(difficulty)
-        valid_ops = get_remaining_valid_operations(st.session_state.problem)
-        st.session_state.options = generate_options(valid_ops)
         st.session_state.question_id += 1
     
     # Display the current state of the problem
     st.markdown(f"### Solve for {st.session_state.problem['target_var']}")
-    eq_latex = latex_equation(st.session_state.problem['current_state'])
+    
+    # Display equation with better formatting
+    current_eq = st.session_state.problem['current_state']
+    eq_latex = latex_equation(current_eq)
     st.latex(eq_latex)
     
     # Show steps taken so far
     if st.session_state.problem['steps_taken']:
         st.markdown("### Steps taken:")
         for i, step in enumerate(st.session_state.problem['steps_taken']):
-            st.markdown(f"{i+1}. {step['name']} {step['value']}")
+            if 'display' in step:
+                st.markdown(f"{i+1}. {step['display']}")
+            elif 'operation' in step:
+                if step['value'] is not None:
+                    # Check if value is a symbolic expression
+                    if hasattr(step['value'], 'name'):
+                        st.markdown(f"{i+1}. {step['operation']} {step['value'].name}")
+                    else:
+                        st.markdown(f"{i+1}. {step['operation']} {step['value']}")
+                else:
+                    st.markdown(f"{i+1}. {step['operation']}")
     
     # If the problem is solved, show congratulations
     if st.session_state.solved:
         st.success(st.session_state.feedback)
-        if st.button("Try Another Problem"):
-            st.session_state.problem = generate_equation(difficulty)
-            valid_ops = get_remaining_valid_operations(st.session_state.problem)
-            st.session_state.options = generate_options(valid_ops)
-            st.session_state.feedback = ""
-            st.session_state.solved = False
-            st.session_state.question_id += 1
+        
+        # Show how many stars were earned
+        # Bonus stars for not using hints
+        hint_penalty = 1 if st.session_state.hint_used else 0
+        
+        if difficulty == 'easy':
+            stars_earned = 2 - hint_penalty
+        elif difficulty == 'medium':
+            stars_earned = 3 - hint_penalty
+        elif difficulty == 'hard':
+            stars_earned = 4 - hint_penalty
+        else:  # extra_hard
+            stars_earned = 6 - hint_penalty
+        
+        st.markdown(f"**You earned {stars_earned} ⭐!**")
+        
+        # Prepare next problem if needed
+        if st.session_state.next_problem_data is None:
+            prepare_next_problem(difficulty)
+            
+        if st.button("Try Another Problem", key="new_problem_button"):
+            # Add stars
+            if difficulty == 'easy':
+                st.session_state.stars += (2 - hint_penalty)
+            elif difficulty == 'medium':
+                st.session_state.stars += (3 - hint_penalty)
+            elif difficulty == 'hard':
+                st.session_state.stars += (4 - hint_penalty)
+            else:  # extra_hard
+                st.session_state.stars += (6 - hint_penalty)
+                
+            if switch_to_next_problem():
+                st.rerun()
+            else:
+                # Fallback
+                st.session_state.problem = generate_equation(difficulty)
+                st.session_state.feedback = ""
+                st.session_state.solved = False
+                st.session_state.show_solution = False
+                st.session_state.question_id += 1
+                st.session_state.hint_used = False
+                st.rerun()
     else:
-        # Show options as buttons
-        st.markdown("### What operation should you apply next?")
+        # Show operation selection form
+        st.markdown("### Choose an operation to apply:")
         
-        # Create a container for the buttons
-        button_container = st.container()
+        # Create a form for operation selection
+        col1, col2 = st.columns(2)
         
-        # Create 2 rows of 2 buttons each
-        if st.session_state.options:
-            col1, col2 = button_container.columns(2)
+        with col1:
+            operation = st.selectbox(
+                "Operation:",
+                ["add", "subtract", "multiply", "divide", "square", "sqrt"],
+                key=f"operation_{st.session_state.question_id}"
+            )
+        
+        with col2:
+            # Only show value input for operations that need it
+            if operation in ["add", "subtract", "multiply", "divide"]:
+                value = st.number_input(
+                    "Value:",
+                    min_value=1, max_value=20, value=2,
+                    key=f"value_{st.session_state.question_id}"
+                )
+            else:
+                value = None
+                st.write("No value needed for this operation")
+        
+        # Apply Operation button
+        if st.button("Apply Operation", key=f"apply_{st.session_state.question_id}"):
+            success, new_eq, feedback = process_step(
+                st.session_state.problem['current_state'],
+                operation,
+                value,
+                st.session_state.problem['target_var']
+            )
             
-            # First row
-            if len(st.session_state.options) > 0:
-                if col1.button(st.session_state.options[0], key=f"option_0_{st.session_state.question_id}"):
-                    process_step(st.session_state.options[0])
-                    st.rerun()
-            
-            if len(st.session_state.options) > 1:
-                if col2.button(st.session_state.options[1], key=f"option_1_{st.session_state.question_id}"):
-                    process_step(st.session_state.options[1])
-                    st.rerun()
-            
-            # Second row
-            col3, col4 = button_container.columns(2)
-            
-            if len(st.session_state.options) > 2:
-                if col3.button(st.session_state.options[2], key=f"option_2_{st.session_state.question_id}"):
-                    process_step(st.session_state.options[2])
-                    st.rerun()
-            
-            if len(st.session_state.options) > 3:
-                if col4.button(st.session_state.options[3], key=f"option_3_{st.session_state.question_id}"):
-                    process_step(st.session_state.options[3])
-                    st.rerun()
+            if success:
+                # Update the equation
+                st.session_state.problem['current_state'] = new_eq
+                st.session_state.feedback = feedback
+                
+                # Add to steps taken
+                step_display = f"{operation.capitalize()}"
+                if value is not None:
+                    step_display += f" {value}"
+                
+                st.session_state.problem['steps_taken'].append({
+                    'operation': operation.capitalize(),
+                    'value': value,
+                    'display': step_display
+                })
+                
+                # Check if solved
+                if is_truly_solved(new_eq, st.session_state.problem['target_var']):
+                    st.session_state.solved = True
+                
+                st.rerun()
+            else:
+                st.session_state.feedback = feedback
+        
+        # Hint button
+        hint_col1, hint_col2 = st.columns([3, 1])
+        with hint_col2:
+            if st.button("Get Hint", key=f"hint_{st.session_state.question_id}"):
+                hint = get_hint(st.session_state.problem['current_state'], st.session_state.problem['target_var'])
+                st.session_state.feedback = f"💡 Hint: {hint}"
+                st.session_state.hint_used = True
+                st.rerun()
         
         # Display feedback
         if st.session_state.feedback:
-            if "Correcto" in st.session_state.feedback:
+            if "solved" in st.session_state.feedback.lower() or "excelente" in st.session_state.feedback.lower():
                 st.success(st.session_state.feedback)
-            elif "Great job" in st.session_state.feedback:
-                st.success(st.session_state.feedback)
+            elif "hint" in st.session_state.feedback.lower():
+                st.info(st.session_state.feedback)
+            elif "correcto" in st.session_state.feedback.lower() or "bien" in st.session_state.feedback.lower() or "good" in st.session_state.feedback.lower():
+                st.info(st.session_state.feedback)
             else:
-                st.error(st.session_state.feedback)
+                st.warning(st.session_state.feedback)
+    
+    # Show solution path if requested
+    if st.session_state.show_solution:
+        st.markdown("### Solution Path:")
+        st.markdown("Here's how to solve this equation:")
+        
+        target_var = st.session_state.problem['target_var']
+        current_equation = st.session_state.problem['original_equation']
+        
+        steps = []
+        for i, step in enumerate(st.session_state.problem['solution_steps']):
+            operation = step['operation']
+            value = step['value']
+            
+            # Format the step description
+            if value is None:
+                step_text = f"{i+1}. {operation}"
+            else:
+                step_text = f"{i+1}. {operation} {value}"
+            
+            # Apply the step
+            if operation == "Take the square root":
+                op = "sqrt"
+            elif operation == "Square it":
+                op = "square"
+            elif operation == "Add":
+                op = "add"
+            elif operation == "Subtract":
+                op = "subtract"
+            elif operation == "Multiply by":
+                op = "multiply"
+            elif operation == "Divide by":
+                op = "divide"
+            else:
+                op = operation.lower()
+                
+            current_equation = apply_operation(current_equation, op, value)
+            current_equation = minimal_simplify(current_equation)
+            
+            # Add to solution steps
+            steps.append({
+                "text": step_text,
+                "equation": latex_equation(current_equation)
+            })
+        
+        # Display the solution steps
+        for step in steps:
+            st.markdown(step["text"])
+            st.latex(step["equation"])
     
     # Show the original problem for reference
     with st.expander("Show original problem"):
@@ -395,21 +651,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-"""definitely much better now! remaining issues are aesthetic, pretty much:
-The buttons don't update if the path chosen is different than the one intended by the original encoding;
-    if we have a = b/4  + 5, and choose to multiply by 4, it accepts it, and re-renders nicely as 4a = b + 20,
-    but the next option is still "subtract 5", not "subtract 20" as it should be now
-The more aesthetic issue is that the roots are not represented as decimal powers like (a+1)^0.25, rather than 4th root.
-    For educational purposes, having the root is more reasonable, its what they're more used to seeing.
-    I do like that the buttons handle powers and roots a little better now (take the root 4, raise to power 4)
-    but it would still be better if it had a more natural sound "raise to the 4th power" "take the 4th root"
-And this last one is silly, but I have to press "Try Another Problem" twice to get the equation to refresh.
-    Oddly, the "show originial equation" part refreshes to a new problem on the first click, but the rest of the page doesn't
-Ah, now I'm running into an additional oddness: when I "take the root 4" of something like (a-1)^4, it re-renders as ((a-1)^4)^0.25
-    this is undesireable for obvious reasons lol
-    Since the intended use of this page is just the order of operations and the movement of terms, maybe we can solve several of these
-    problems at once by limiting the powers and roots to just 2. this wouldn't make a difference in terms of what is learned,
-    but it would probably make the implementation a lot more smooth. and it would solve the awkward phrasing,
-    since we can just hard-code 'take the square root' or 'square it'. doesn't solve everything, but a few things
-"""

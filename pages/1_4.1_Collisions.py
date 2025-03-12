@@ -41,17 +41,15 @@ def initialize_session_state():
 def main():
     prefix = "collision_"  # use same prefix here
     st.title("Collisions")
-    st.sidebar.markdown("### Your Progress")
-    
     generator = CollisionGenerator()
     initialize_session_state()
     correct = st.session_state[f"{prefix}total_correct"]
     total = st.session_state[f"{prefix}total_answered"]
     if total > 0:
         percentage = (correct / total) * 100
-        st.sidebar.write(f"Correct: {correct} out of {total}, ({percentage:.1f}%)")
+        st.markdown(f"Your Progress: Correct: {correct} out of {total}, ({percentage:.1f}%)")
     else:
-        st.sidebar.write("No questions answered yet")
+        st.write("Your Progress: No questions answered yet")
     # UI Controls
 
     col1, col2 = st.columns(2)
