@@ -14,33 +14,25 @@ def initialize_session_state():
         'unit',
         'user_answer',
         'submitted',
-        'question_id',
+        '_question_id',
         'difficulty',
         'problem_type'
     ]
-    
-    # initialize all vars with prefix
-    for var in base_vars:
-        if f"{prefix}_{var}" not in st.session_state:
-            st.session_state[f"{prefix}_{var}"] = None
 
     # initialize question_id to 0
     if f"{prefix}_question_id" not in st.session_state:
         st.session_state[f"{prefix}_question_id"] = 0
+
+    # initialize all vars with prefix
+    for var in base_vars:
+        if f"{prefix}_{var}" not in st.session_state:
+            st.session_state[f"{prefix}_{var}"] = None if var != "_question_id" else 0
+
+    
         
     # Initialize performance tracking dictionary if it doesn't exist
     if f"{prefix}_performance" not in st.session_state:
-        # Structure: {problem_type: {difficulty: {'attempts': 0, 'correct': 0}}}
-        problem_types = ["Mixed", "No Time", "No Distance", "No Acceleration", "No Final Velocity"]
-        difficulties = ["Easy", "Medium", "Hard"]
-        
-        performance_dict = {}
-        for p_type in problem_types:
-            performance_dict[p_type] = {}
-            for diff in difficulties:
-                performance_dict[p_type][diff] = {'attempts': 0, 'correct': 0}
-                
-        st.session_state[f"{prefix}_performance"] = performance_dict
+        st.session_state[f"{prefix}_performance"] = clear_performance_dataframe()
 
 
 def generate_question(generator, problem_type, difficulty):
@@ -115,6 +107,22 @@ def create_performance_dataframe():
     pivot_df = pivot_df[["Easy", "Medium", "Hard"]]
     
     return pivot_df
+
+def clear_performance_dataframe():
+    """Reset the performance tracking dictionary"""
+    prefix = "linear_motion"
+    problem_types = ["Mixed", "No Time", "No Distance", "No Acceleration", "No Final Velocity"]
+    difficulties = ["Easy", "Medium", "Hard"]
+        
+    performance_dict = {}
+    for p_type in problem_types:
+        performance_dict[p_type] = {}
+        for diff in difficulties:
+            performance_dict[p_type][diff] = {'attempts': 0, 'correct': 0}
+            
+    st.session_state[f"{prefix}_performance"] = performance_dict
+
+    return performance_dict
 
 
 def main():
@@ -205,8 +213,8 @@ def main():
     
     # New Question button
     if st.button("New Question"):
-        st.session_state[f"{prefix}_question_id"] += 1
         question, answer, unit = generate_question(generator, problem_type, difficulty)
+        st.session_state[f"{prefix}_question_id"] += 1
         st.session_state[f"{prefix}_current_question"] = question
         st.session_state[f"{prefix}_correct_answer"] = answer
         st.session_state[f"{prefix}_unit"] = unit
@@ -214,16 +222,23 @@ def main():
         generator.clear_answers()
         st.rerun()
     
-    # Display performance table
-    st.subheader("Your Performance")
-    performance_df = create_performance_dataframe()
-    st.dataframe(performance_df, use_container_width=True)
+    with st.expander("Your Performance", expanded=False):
+        performance_df = create_performance_dataframe()
+        st.dataframe(performance_df, use_container_width=True)
     
     # Add a reset performance button
     if st.button("Reset Performance Statistics"):
         initialize_session_state()
-        st.session_state[f"{prefix}_performance"] = {}
+        st.session_state[f"{prefix}_performance"] = clear_performance_dataframe()
+        question, answer, unit = generate_question(generator, problem_type, difficulty)
+        st.session_state[f"{prefix}_question_id"] += 1
+        st.session_state[f"{prefix}_current_question"] = question
+        st.session_state[f"{prefix}_correct_answer"] = answer
+        st.session_state[f"{prefix}_unit"] = unit
+        st.session_state[f"{prefix}_submitted"] = False
+        generator.clear_answers()
         st.rerun()
+        #st.session_state[f"{prefix}_performance"] = {}
 
 if __name__ == "__main__":
     main()
