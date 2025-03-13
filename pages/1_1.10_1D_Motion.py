@@ -414,7 +414,7 @@ class linear_fns:
         generator = LinearMotionGenerator()
 
         # UI Controls
-        col1, col2 = st.columns(2)
+        col1, col2, col3,col4 = st.columns([2,2,1,2])
         with col1:
             problem_types = {
             "Mixed": "Mixed",
@@ -447,7 +447,20 @@ class linear_fns:
             if selected_problem_type == "Mixed":
                 st.latex(r"v_f = v_i + a \cdot t")
                 st.latex(r"x = \frac{(v_f + v_i)}{2} \cdot t")
-
+        with col3:
+            st.write("")
+        with col4:
+            st.write("")
+            st.write("")
+            if st.button("New Question",key=f"{prefix}_new_question"):
+                question, answer, unit = linear_fns.generate_question(generator, problem_type, difficulty)
+                st.session_state[f"{prefix}_question_id"] += 1
+                st.session_state[f"{prefix}_current_question"] = question
+                st.session_state[f"{prefix}_correct_answer"] = answer
+                st.session_state[f"{prefix}_unit"] = unit
+                st.session_state[f"{prefix}_submitted"] = False
+                generator.clear_answers()
+                st.rerun()
         # Check if we need a new question
         if (problem_type != st.session_state[f"{prefix}_problem_type"] or 
             st.session_state[f"{prefix}_current_question"] is None):
@@ -462,46 +475,43 @@ class linear_fns:
             generator.clear_answers()
 
         # Display current question
+        st.subheader("Question:")
         st.write(st.session_state[f"{prefix}_current_question"])
-        
+        in_col1, in_col2, in_col3 = st.columns(3)
         # Input fields
-        user_input = st.number_input(
-            f"{st.session_state[f'{prefix}_unit']}:",
-            value=None,
-            step=None,
-            format="%f",
-            key=f"{prefix}_input_{st.session_state[f'{prefix}_question_id']}"
-        )
-
-        # Submit button
-        if st.button("Submit",key=f"{prefix}_submit"):
-            if user_input is not None:
-                correct_answer = st.session_state[f"{prefix}_correct_answer"]
-                tolerance = correct_answer * 0.05
-                is_correct = abs(user_input - correct_answer) < abs(tolerance)
-                
-                # Only update performance if not already submitted for this question
-                if not st.session_state[f"{prefix}_submitted"]:
-                    linear_fns.update_performance(problem_type, difficulty, is_correct)
-                    st.session_state[f"{prefix}_submitted"] = True
-                
-                if is_correct:
-                    st.success("Correct!")
+        with in_col1:
+            user_input = st.number_input(
+                f"Answer (in {st.session_state[f'{prefix}_unit']}):",
+                value=None,
+                step=None,
+                format="%f",
+                key=f"{prefix}_input_{st.session_state[f'{prefix}_question_id']}"
+            )
+        with in_col2:
+            st.write("")
+           
+        with in_col3:
+            st.write("")
+             # Submit button
+            if st.button("Submit",key=f"{prefix}_submit"):
+                if user_input is not None:
+                    correct_answer = st.session_state[f"{prefix}_correct_answer"]
+                    tolerance = correct_answer * 0.05
+                    is_correct = abs(user_input - correct_answer) < abs(tolerance)
+                    
+                    # Only update performance if not already submitted for this question
+                    if not st.session_state[f"{prefix}_submitted"]:
+                        linear_fns.update_performance(problem_type, difficulty, is_correct)
+                        st.session_state[f"{prefix}_submitted"] = True
+                    
+                    if is_correct:
+                        st.success("Correct!")
+                    else:
+                        st.error(f"Incorrect. The correct answer is {correct_answer:.2f}.")
                 else:
-                    st.error(f"Incorrect. The correct answer is {correct_answer:.2f}.")
-            else:
-                st.error("Please enter an answer before submitting.")
-        
-        # New Question button
-        if st.button("New Question",key=f"{prefix}_new_question"):
-            question, answer, unit = linear_fns.generate_question(generator, problem_type, difficulty)
-            st.session_state[f"{prefix}_question_id"] += 1
-            st.session_state[f"{prefix}_current_question"] = question
-            st.session_state[f"{prefix}_correct_answer"] = answer
-            st.session_state[f"{prefix}_unit"] = unit
-            st.session_state[f"{prefix}_submitted"] = False
-            generator.clear_answers()
-            st.rerun()
+                    st.error("Please enter an answer before submitting.")
+            # New Question button
+            
         
         with st.expander("Your Performance", expanded=False):
             performance_df = linear_fns.create_performance_dataframe()
