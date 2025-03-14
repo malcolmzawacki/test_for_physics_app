@@ -4,6 +4,4 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.generators.linear_motion_generator import LinearMotionGenerator
-generator = LinearMotionGenerator()
-st.table()
+from utils.generators.energy_generator import EnergyGenerator
