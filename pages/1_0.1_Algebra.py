@@ -18,6 +18,7 @@ class algebra:
         
         return latex_str
     
+
     @staticmethod
     def count_operations(expr):
         """Count the number of operations in an expression - used for complexity"""
@@ -34,6 +35,7 @@ class algebra:
             return algebra.count_operations(expr.base) + 1
             
         return 0  # Atomic expression (symbol or number)
+
 
     @staticmethod
     def generate_equation(difficulty):
@@ -150,6 +152,7 @@ class algebra:
             'original_equation': final_equation,
         }
 
+
     @staticmethod
     def analyze_equation_state(equation, target_var):
         """Analyze the current state of the equation to determine hint suggestions"""
@@ -191,6 +194,7 @@ class algebra:
                     analysis['target_almost_alone'] = True
         
         return analysis
+
 
     @staticmethod
     def get_hint(equation, target_var):
@@ -237,6 +241,7 @@ class algebra:
         # Default hint
         return "Think about which operations would simplify the equation or help isolate the variable."
 
+
     @staticmethod
     def apply_operation(equation, operation, value=None):
         """Apply an algebraic operation to both sides of the equation"""
@@ -273,6 +278,7 @@ class algebra:
         
         # If operation not recognized, return the original equation
         return equation
+
 
     @staticmethod
     def simplify_powers(expr):
@@ -312,6 +318,7 @@ class algebra:
             pass
         return equation
 
+
     @staticmethod
     def is_truly_solved(equation, target_var):
         """STRICT check if the target variable is truly isolated"""
@@ -335,6 +342,7 @@ class algebra:
             return True
         
         return False
+
 
     @staticmethod
     def process_step(equation, operation, value, target_var):
@@ -371,6 +379,7 @@ class algebra:
         
         return True, simplified_eq, feedback
 
+
     @staticmethod
     def initialize_session_state():
         """Initialize all session state variables"""
@@ -393,9 +402,11 @@ class algebra:
         if 'selected_operation' not in st.session_state:
             st.session_state.selected_operation = "add"
 
+
     @staticmethod
     def select_operation(operation):
         st.session_state.selected_operation = operation
+
 
     @staticmethod
     def prepare_next_problem(difficulty):
@@ -405,6 +416,7 @@ class algebra:
         st.session_state.next_problem_data = {
             'problem': next_problem
         }
+
 
     @staticmethod
     def switch_to_next_problem():
@@ -419,6 +431,7 @@ class algebra:
             st.session_state.hint_used = False
             return True
         return False
+
 
     @staticmethod
     def main():
@@ -727,6 +740,7 @@ class algebra:
         # Show the original problem for reference
         with st.expander("Show original problem"):
             st.latex(algebra.latex_equation(st.session_state.problem['original_equation']))
+
 
 if __name__ == "__main__":
     algebra.main()
